@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <boost/optional.hpp> //<experimental/optional>
 #include <boost/math/special_functions/pow.hpp>
+#include <iostream>
 		
 
 //Implementation of Z85 encoding
@@ -21,7 +22,7 @@
 // Document any extension that you impliment
 
 //We don't really need a struct or class namespace is just enough
-namespace Z85 {
+namespace z85 {
 #define VALID_Z85_CHARS "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.-:+=^!/*?&<>()[]{}@%$#"
 // Maps base 85 to base 256
 // We chop off lower 32 and higher 128 ranges
@@ -40,88 +41,98 @@ const std::vector<char> decoder = {
 0x21, 0x22, 0x23, 0x4F, 0x00, 0x50, 0x00, 0x00
 };
 
-using encoded_type = boost::optional<std::string> ;
-using decoded_type = boost::optional<std::vector<uint8_t> > ;
 
-// Encode binary data with Z85 encoding
-decoded_type decode(std::string &data) {
-    decoded_type decoded ;
-    if (data.size() % 5) { //According to algorithm stop processing , not possible
-        return decoded; //instead of throwing exception can return uninitialized string
+struct encode {
+ using return_type = std::string ;
+ static const int base = 85;
+ static const int exp = 4 ;
+ static const int size = 4 ;
+ 
+ template<typename Iter>
+ static uint32_t accumulate(Iter b, Iter e ) {
+ return std::accumulate(b,e, 0 , [] (uint32_t v, uint8_t x) { return v * 256 + x ; } ) ;
+ }
+ template<typename V, typename D>
+ static char extract(V value, D divisor) { 
+     return VALID_Z85_CHARS [value / divisor % base] ;
+ }
+ 
+} ;
+
+struct decode  {
+ using return_type = std::vector<uint8_t>  ;
+ static const int base = 256;
+ static const int exp = 3 ;
+ static const int size = 5 ;
+ 
+ template<typename Iter>
+ static uint32_t accumulate(Iter b, Iter e ) {
+   return std::accumulate(b,e, 0 ,  [] (uint32_t v, uint8_t x) { return v * 85 + decoder[x-32] ; } ) ;
+ }
+ template<typename V, typename D>
+ static uint8_t extract(V value, D divisor ) { 
+     return value / divisor % base ;
+ }
+ 
+} ;
+
+ template<typename Mode>
+ struct Codec
+ {
+    typedef typename Mode::return_type return_type ;
+    template<typename Container>
+    boost::optional<return_type> operator()( Container &data ) 
+    {
+        boost::optional<return_type> processed;
+        if (data.size() % Mode::size) { //According to algorithm stop processing , not possible
+            return processed; //instead of throwing exception can return uninitialized string
+        }
+        processed = return_type();
+
+        std::function<void (Container::iterator, Container::iterator) > func = 
+        [&] (Container::iterator b , Container::iterator e) 
+        {
+           if ( b==e) {
+               return;
+           }
+           uint32_t value = Mode::accumulate(b,e)  ;
+           uint divisor= boost::math::pow<Mode::exp>(Mode::base);
+           while(divisor) {
+               auto c = Mode::extract(value,divisor);
+               //less performance then preallocated string but sufice for now
+               processed->push_back(c);
+               divisor /=Mode::base ;
+           }
+           func(e , e+Mode::size > data.end() ? e : e+Mode::size ) ;
+           return; 
+        } ;
+        func(data.begin(),data.begin()+Mode::size) ;
+        return processed ;
+    }
+    
+
+
+} ;
+
+} //namespace 
+
+    // Print out data in a pretty fashion
+    //
+    // Print offset into buffer as an 32 bit hexadecimal number, with padding
+    // Print up to the next sixteen bytes as two digit hexadecimal numbers
+    // Print ascii (0x20 - 0x7e), or '.' if out of range
+    // Pad the end with spaces ' '
+    //
+    // Example
+    // 00000000 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................
+    // 00000010 20 21 22 23 24 25 26 00 00 00 00 00 00 00 00 00  !"#$%&.........
+    // 00000020 00 00 00 00 00 00 00 00 00 00 00 00 00 00 41 00 ..............A.
+    // 00000030 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................
+    // 00000040 00 00 00 7E                                     ...~
+    //void dumpData(const std::vector<uint8_t> &data) {}
+    std::ostream & operator<< (std::ostream &s , const std::vector<uint8_t> &data) {
+
     }
 
-    decoded = std::vector<uint8_t>() ;
-    
-    std::function<void (std::string::iterator, std::string::iterator) > func = 
-    [&] (std::string::iterator b , std::string::iterator e) 
-    {
-       if ( b==e) {
-           return;
-       }
-       uint32_t value = std::accumulate(b,e, 0 , [] (uint32_t v, uint8_t x) { return v * 85 + decoder[x-32] ; } )  ;
-       uint divisor= boost::math::pow<3>(256);
-       while(divisor) {
-           //less performance then preallocated string but sufice for now
-           uint8_t c = value / divisor % 256 ;
-           decoded->push_back(c);
-           divisor /=256 ;
-       }       
-       func(e , e+5 > data.end() ? e : e+5 ) ;
-       return; 
-    } ;
-    func(data.begin(),data.begin()+5) ;
-}
-
-// Decode binary data with Z85 encoding
-encoded_type encode(std::vector<uint8_t> &data) {
-    encoded_type encoded ;
-    if (data.size() % 4) { //According to algorithm stop processing , not possible
-        return encoded; //instead of throwing exception can return uninitialized string
-    }
-
-    encoded = std::string() ;
-    
-    std::function<void (std::vector<uint8_t>::iterator, std::vector<uint8_t>::iterator) > func = 
-    [&] (std::vector<uint8_t>::iterator b , std::vector<uint8_t>::iterator e) 
-    {
-       if ( b==e) {
-           return;
-       }
-       uint32_t value = std::accumulate(b,e, 0 , [] (uint32_t v, uint8_t x) { return v * 256 + x ; } )  ;
-       uint divisor= boost::math::pow<4>(85);
-       while(divisor) {
-           //less performance then preallocated string but sufice for now
-           char c = VALID_Z85_CHARS [value / divisor % 85] ;
-           encoded->push_back(c);
-           divisor /=85 ;
-       }       
-       func(e , e+4 > data.end() ? e : e+4 ) ;
-       return; 
-    } ;
-    func(data.begin(),data.begin()+4) ;
-
-}
-
-// Print out data in a pretty fashion
-//
-// Print offset into buffer as an 32 bit hexadecimal number, with padding
-// Print up to the next sixteen bytes as two digit hexadecimal numbers
-// Print ascii (0x20 - 0x7e), or '.' if out of range
-// Pad the end with spaces ' '
-//
-// Example
-// 00000000 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................
-// 00000010 20 21 22 23 24 25 26 00 00 00 00 00 00 00 00 00  !"#$%&.........
-// 00000020 00 00 00 00 00 00 00 00 00 00 00 00 00 00 41 00 ..............A.
-// 00000030 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ................
-// 00000040 00 00 00 7E                                     ...~
-void dumpData(const std::vector<uint8_t> &data) {}
-
-}
 #endif//_Z85_ENC_HPP_
-
-
-
-
-
 
