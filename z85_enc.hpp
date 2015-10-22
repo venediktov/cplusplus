@@ -131,7 +131,7 @@ struct decode  {
     // 00000040 00 00 00 7E                                     ...~
     //void dumpData(const std::vector<uint8_t> &data) {}
     std::ostream & operator<< (std::ostream &s , const std::vector<uint8_t> &data) {
-
+       //TODO: implement nice print 
     }
 
 #endif//_Z85_ENC_HPP_
