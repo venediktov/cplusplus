@@ -20,7 +20,6 @@
 // throw std::exception (with reason) if unable to decode
 // Document any extension that you impliment
 
-//We don't really need a struct or class namespace is just enough
 namespace z85 {
 #define VALID_Z85_CHARS "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.-:+=^!/*?&<>()[]{}@%$#"
 // Maps base 85 to base 256
