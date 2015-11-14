@@ -5,7 +5,7 @@
 #include <algorithm>
 
 
-namespace suisse {
+namespace vlad {
     
 template<std::size_t MAX_OBJ_SIZE>
 struct object_holder
@@ -106,7 +106,7 @@ struct max_size<T>
 
 
 int main(int argc, char** argv) {
-    suisse::pool<max_size<A,B,C>::value> my_pool(10,100) ;
+    vlad::pool<max_size<A,B,C>::value> my_pool(10,100) ;
     std::shared_ptr<A> a ;
     my_pool.alloc(a, std::string("vlad")) ;
     std::shared_ptr<B> b ;
