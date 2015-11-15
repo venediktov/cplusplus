@@ -4,15 +4,13 @@
 #include <vector>
 #include <algorithm>
 
-
-namespace vlad {
+namespace memory {
     
 template<std::size_t MAX_OBJ_SIZE>
-struct object_holder
+struct alignas(8) object_holder
 {
-    using object_t  = unsigned char[MAX_OBJ_SIZE] ; //or std::array<uchar,MAX_OBJ_SIZE>
-
-    object_holder() : object() , reclaimed() {}
+    using object_t  = unsigned char[MAX_OBJ_SIZE] ;
+    object_holder() : object() {}
 
     template<typename T, typename ...Args>
     T* construct_inner(Args&&... args) {
@@ -22,54 +20,59 @@ struct object_holder
     template<typename T>
     void destruct_inner() {
         reinterpret_cast<T&>(object).~T() ;
-        reclaimed=true ;
     }
-    object_t object;
-    bool reclaimed;
+    alignas(8) object_t object;
 };
 
 
 template<std::size_t MAX_OBJ_SIZE>
-class pool
+class object_pool
 {
 public:
-    //TODO: resize capacity asynch , and improve find_if
-    pool (std::size_t maxCapacity, std::size_t minCapacity) :
+    object_pool (std::size_t maxCapacity, std::size_t minCapacity) :
+        indexes_(maxCapacity),
         pool_impl_(maxCapacity),
-        min_capacity_(minCapacity) , max_capacity_(maxCapacity)
-    {}
+        min_capacity_(minCapacity) , max_capacity_(maxCapacity),
+        first_(std::begin(indexes_))
+    { 
+            std::transform(std::begin(pool_impl_), 
+                           std::end(pool_impl_) , 
+                           indexes_.begin() , 
+                           [] (object_impl_t &o){ return &o ; });
+    }
 
     template<typename Object, typename ...Args>
     void alloc (std::shared_ptr<Object> & object, Args&&... args) {
        std::lock_guard<std::mutex> guard(lock_) ;
-       auto itr = std::find_if(std::begin(pool_impl_), std::end(pool_impl_), [] (const object_impl_t &o) { return !o.reclaimed ; } );
-       if ( itr != std::end(pool_impl_) ) {
-           Object *p = itr->template construct_inner<Object>( std::forward<Args>(args)... );
+       if ( first_ != std::end(indexes_) ) {
+           Object *p = (*first_)->template construct_inner<Object>( std::forward<Args>(args)... );          
+           std::advance (first_ , std::min(1,std::distance(first_,indexes_.end()) ) ) ; //std::next up to std::end         
            object =  std::shared_ptr<Object>(p, [this]( Object *p )
            {
-               std::lock_guard<std::mutex> guard(lock_) ;
-               auto itr = std::find_if(std::begin(pool_impl_), std::end(pool_impl_), [p] (const object_impl_t &o) 
-               { 
-                   return (void*)std::addressof(o.object) == (void*)p; 
-               });
-               if ( itr != std::end(pool_impl_) ) {
-                   itr->template destruct_inner<Object>() ;
-               }
+               std::lock_guard<std::mutex> guard(lock_) ;               
+               std::advance (first_ , -std::min(1,std::distance(indexes_.begin(),first_) ) ) ; //std::prev down to std::begin
+               object_impl_t *o = reinterpret_cast<object_impl_t*>(p) ;
+               *first_ = o ;  
+               o->template destruct_inner<Object>() ;
            }) ;
        }
        else {
+           //TODO: asynch even to resize 
            object = std::shared_ptr<Object>(new Object(std::forward<Args>(args)...)) ;
        }
     }
 
 private:
-    void increase_capacity() { ; } //TODO: implement it 
+    void increase_capacity() { ; } //TODO: implement it and call it asynch
     using object_impl_t = object_holder<MAX_OBJ_SIZE> ;
     using pool_impl_t =  std::vector<object_impl_t> ;
+    using index_buffer_t = std::vector<object_impl_t*> ;
+    index_buffer_t indexes_ ;
     pool_impl_t pool_impl_ ;
     std::size_t min_capacity_ ;
     std::size_t max_capacity_ ;
     std::mutex lock_ ;
+    typename index_buffer_t::iterator first_ ; //pointer to first free slot in the pool 
 };
 
 
@@ -106,13 +109,16 @@ struct max_size<T>
 
 
 int main(int argc, char** argv) {
-    vlad::pool<max_size<A,B,C>::value> my_pool(10,100) ;
+    memory::object_pool<max_size<A,B,C>::value> my_pool(10,100) ;
     std::shared_ptr<A> a ;
     my_pool.alloc(a, std::string("vlad")) ;
+    {
     std::shared_ptr<B> b ;
     my_pool.alloc(b, std::string("Vlad") , std::string("Venediktov")) ;
-    std::clog << "name=" << a->s << std::endl ;
     std::clog << "name=" << b->s << ",last_name=" << b->t << std::endl ;
+    }
+    std::clog << "name=" << a->s << std::endl ;
+ 
     return 0;
 }
 
