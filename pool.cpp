@@ -14,6 +14,7 @@ struct alignas(8) object_holder
 
     template<typename T, typename ...Args>
     T* construct_inner(Args&&... args) {
+        static_assert (sizeof(T) <= MAX_OBJ_SIZE, "size of object is not supported");
         return new(&object) T(std::forward<Args>(args)...) ;
     }
 
@@ -83,12 +84,11 @@ private:
 
 struct A { A( const std::string &s_) : s(s_) {} ~A() {std::clog<<"~A()"<<std::endl;}   std::string s; };
 struct B { B( const std::string &s_ , const std::string &t_) : s(s_), t(t_) {} ~B(){std::clog<<"~B()"<<std::endl;} std::string s; std::string t; };
-struct C { C( int i_ ) : i(i_) {} ~C(){std::clog<<"~B()"<<std::endl;} int i; };
+struct C { C( int i_ ) : i(i_) {} ~C(){std::clog<<"~C()"<<std::endl;} int i; };
 
 
 
 template<typename... Types> struct max_size ;
-
 
 template<typename T, typename... Types>
 struct max_size<T, Types...>
@@ -106,8 +106,6 @@ struct max_size<T>
  * Test Cases below :
  */
 
-
-
 int main(int argc, char** argv) {
     memory::object_pool<max_size<A,B,C>::value> my_pool(10,100) ;
     std::shared_ptr<A> a ;
@@ -118,7 +116,7 @@ int main(int argc, char** argv) {
     std::clog << "name=" << b->s << ",last_name=" << b->t << std::endl ;
     }
     std::clog << "name=" << a->s << std::endl ;
- 
+
     return 0;
 }
 
