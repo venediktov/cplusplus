@@ -115,7 +115,7 @@ template <typename T>
 struct parallel<T> {
     static constexpr std::size_t count=1;
     template <typename Pool, typename... Args>
-    static auto fetch(const Pool &pool, Args... args) -> decltype(std::chrono::system_clock::now() - std::chrono::system_clock::now())
+    static auto fetch(const Pool &pool, Args&&... args) -> decltype(std::chrono::system_clock::now() - std::chrono::system_clock::now())
     {
         std::shared_ptr<T> t ;
         auto start = std::chrono::system_clock::now();
@@ -132,7 +132,7 @@ template <typename T, typename... Types>
 struct parallel<T,Types...> {
     static constexpr std::size_t count = parallel<T>::count + parallel<Types...>::count ;
     template <typename Pool, typename... Args>
-    static auto fetch(const Pool &pool, Args... args) -> decltype(std::chrono::system_clock::now() - std::chrono::system_clock::now())
+    static auto fetch(const Pool &pool, Args&&... args) -> decltype(std::chrono::system_clock::now() - std::chrono::system_clock::now())
     {
         auto handle = std::async(std::launch::async,
                                  parallel<T>::template fetch<Pool,Args...>,  std::cref(pool), std::forward<Args>(args)...);
