@@ -4,6 +4,7 @@
 #include <vector>
 #include <algorithm>
 
+
 namespace memory {
     
 template<std::size_t MAX_OBJ_SIZE>
@@ -84,7 +85,7 @@ private:
 
 struct A { A( const std::string &s_) : s(s_) {} ~A() {std::clog<<"~A()"<<std::endl;}   std::string s; };
 struct B { B( const std::string &s_ , const std::string &t_) : s(s_), t(t_) {} ~B(){std::clog<<"~B()"<<std::endl;} std::string s; std::string t; };
-struct C { C( int i_ ) : i(i_) {} ~C(){std::clog<<"~C()"<<std::endl;} int i; };
+struct C { C( const std::string &s ) : i() , t() , r() {} ~C(){std::clog<<"~C()"<<std::endl;} int i; int t; int r ; };
 
 
 
@@ -93,21 +94,55 @@ template<typename... Types> struct max_size ;
 template<typename T, typename... Types>
 struct max_size<T, Types...>
 { 
-   static const std::size_t value  = sizeof(T) > max_size<Types...>::value ? sizeof(T) : max_size<Types...>::value ; 
+   static constexpr std::size_t value  = sizeof(T) > max_size<Types...>::value ? sizeof(T) : max_size<Types...>::value ; 
 } ;
 
 template <typename  T>
 struct max_size<T>
 {
-    static const std::size_t value = sizeof(T);
+    static constexpr std::size_t value = sizeof(T);
 } ;
 
 /*
  * Test Cases below :
  */
+#include <future>
+#include <chrono>
+
+template <typename... Types> struct parallel ;
+
+template <typename T>
+struct parallel<T> {
+    static constexpr std::size_t count=1;
+    template <typename Pool, typename... Args>
+    static auto fetch(const Pool &pool, Args... args) -> decltype(std::chrono::system_clock::now() - std::chrono::system_clock::now())
+    {
+        std::shared_ptr<T> t ;
+        auto start = std::chrono::system_clock::now();
+        const_cast<Pool &>(pool).alloc(t, std::forward<Args>(args)...) ;
+        auto end = std::chrono::system_clock::now();
+        auto result = end - start ;
+        //std::clog << "elapsed=" << std::chrono::duration_cast<std::chrono::microseconds>(result).count() << ", tid=" << std::this_thread::get_id() << std::endl ;
+        std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        return result;
+    }
+};
+
+template <typename T, typename... Types>
+struct parallel<T,Types...> {
+    static constexpr std::size_t count = parallel<T>::count + parallel<Types...>::count ;
+    template <typename Pool, typename... Args>
+    static auto fetch(const Pool &pool, Args... args) -> decltype(std::chrono::system_clock::now() - std::chrono::system_clock::now())
+    {
+        auto handle = std::async(std::launch::async,
+                                 parallel<T>::template fetch<Pool,Args...>,  std::cref(pool), std::forward<Args>(args)...);
+        auto elapsed = parallel<Types...>::template fetch<Pool,Args...>(pool, std::forward<Args>(args)...);
+        return handle.get() + elapsed ;
+    }
+};
 
 int main(int argc, char** argv) {
-    memory::object_pool<max_size<A,B,C>::value> my_pool(10,100) ;
+    memory::object_pool<max_size<A,B,C>::value> my_pool(100,10) ;
     std::shared_ptr<A> a ;
     my_pool.alloc(a, std::string("vlad")) ;
     {
@@ -117,6 +152,15 @@ int main(int argc, char** argv) {
     }
     std::clog << "name=" << a->s << std::endl ;
 
+    memory::object_pool<max_size<A,C>::value> parallel_pool(1000,2) ; 
+    std::chrono::nanoseconds elapsed(0);
+    std::size_t iteration_count=1000;
+    for (int i = 0; i <= iteration_count; ++i) {
+        elapsed += parallel<A,C,A,C,A,C,A,C,A,C>::fetch(parallel_pool , std::string("PARALLEL_EXECUTION")) ;
+    }
+    auto avrg_microsec = std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count()/(parallel<A,C,A,C,A,C,A,C,A,C>::count * iteration_count) ;
+    std::cout << "pool average access time =" << avrg_microsec << " microsec" << std::endl ;
+    std::cout << "parallel count(checking) = " << parallel<A,C,A,C,A,C,A,C,A,C>::count ;
     return 0;
 }
 
