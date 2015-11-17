@@ -96,7 +96,7 @@ private:
         pool_impl_.push_front(sp) ;
         std::transform(std::begin(*sp),  std::end(*sp) , 
                        &indexes_[last_size] , [] (object_impl_t &o){ return &o ; });
-        capacity_threshhold_ *= 2 ;
+        capacity_threshhold_ += MAX_CAPACITY  ;
         increase_in_progress_=false;
         return ;
     }
