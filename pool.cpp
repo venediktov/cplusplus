@@ -2,11 +2,25 @@
 #include <utility>
 #include <mutex>
 #include <vector>
+#include <forward_list>
 #include <algorithm>
+#include <future>
 
 
 namespace memory {
     
+template< class Function, class... Args>
+std::future<typename std::result_of<Function(Args...)>::type> async( Function&& f, Args&&... args ) 
+{
+    typedef typename std::result_of<Function(Args...)>::type R;
+    auto bound_task = std::bind(std::forward<Function>(f), std::forward<Args>(args)...);
+    std::packaged_task<R()> task(std::move(bound_task));
+    auto ret = task.get_future();
+    std::thread t(std::move(task));
+    t.detach();
+    return ret;   
+}
+
 template<std::size_t MAX_OBJ_SIZE>
 struct alignas(8) object_holder
 {
@@ -27,54 +41,76 @@ struct alignas(8) object_holder
 };
 
 
-template<std::size_t MAX_OBJ_SIZE>
+template<std::size_t MAX_OBJ_SIZE, 
+         std::size_t MAX_CAPACITY=1024 , 
+         std::size_t MIN_CAPACITY=128>
 class object_pool
 {
 public:
-    object_pool (std::size_t maxCapacity, std::size_t minCapacity) :
-        indexes_(maxCapacity),
-        pool_impl_(maxCapacity),
-        min_capacity_(minCapacity) , max_capacity_(maxCapacity),
-        first_(std::begin(indexes_))
+    object_pool () : 
+        indexes_(MAX_CAPACITY), pool_impl_(), first_(), 
+        capacity_threshhold_(MAX_CAPACITY-MIN_CAPACITY), 
+        increase_in_progress_(),
+        lock_()
     { 
-            std::transform(std::begin(pool_impl_), 
-                           std::end(pool_impl_) , 
-                           indexes_.begin() , 
-                           [] (object_impl_t &o){ return &o ; });
+        segment_ptr sp(new memory_chunk_t) ;
+        pool_impl_.push_front(sp) ;
+        std::transform(std::begin(*sp),  std::end(*sp) , 
+                       std::begin(indexes_) , [] (object_impl_t &o){ return &o ; });
     }
 
     template<typename Object, typename ...Args>
     void alloc (std::shared_ptr<Object> & object, Args&&... args) {
-       std::lock_guard<std::mutex> guard(lock_) ;
-       if ( first_ != std::end(indexes_) ) {
-           Object *p = (*first_)->template construct_inner<Object>( std::forward<Args>(args)... );          
-           std::advance (first_ , std::min(1,std::distance(first_,indexes_.end()) ) ) ; //std::next up to std::end         
+       std::lock_guard<std::mutex> guard {lock_} ;
+       if ( first_ < capacity_threshhold_ ) {
+           Object *p = indexes_[first_++]->template construct_inner<Object>( std::forward<Args>(args)... );          
            object =  std::shared_ptr<Object>(p, [this]( Object *p )
            {
-               std::lock_guard<std::mutex> guard(lock_) ;               
-               std::advance (first_ , -std::min(1,std::distance(indexes_.begin(),first_) ) ) ; //std::prev down to std::begin
+               std::lock_guard<std::mutex> guard {lock_} ; 
                object_impl_t *o = reinterpret_cast<object_impl_t*>(p) ;
-               *first_ = o ;  
+               indexes_[--first_] = o ;  
                o->template destruct_inner<Object>() ;
            }) ;
        }
-       else {
-           //TODO: asynch even to resize 
+       else { 
+           if ( !increase_in_progress_) {
+               //std::clog << "Calling asynch tid" << std::this_thread::get_id() << std::endl;
+               increase_in_progress_=true;
+               memory::async(&object_pool::increase_capacity, this);
+           }
+           //std::clog << "Getting from heap first_=" << first_ << ", tid=" << std::this_thread::get_id() << std::endl;
            object = std::shared_ptr<Object>(new Object(std::forward<Args>(args)...)) ;
        }
     }
-
+    object_pool (object_pool const &) =  delete ;
+    object_pool (object_pool &&) =  delete ;
+    object_pool & operator=(object_pool const &) = delete ;
+    object_pool && operator=(object_pool &&) = delete ;
 private:
-    void increase_capacity() { ; } //TODO: implement it and call it asynch
+    void increase_capacity() {
+        std::lock_guard<std::mutex> guard {lock_} ; 
+        //std::clog << "tid=" << std::this_thread::get_id() <<",first_=" << first_ << ", increassing capacity from " << indexes_.size() << ", to " << indexes_.size()+MAX_CAPACITY << std::endl;
+        std::size_t last_size=indexes_.size() ;
+        indexes_.resize(last_size+MAX_CAPACITY) ;
+        segment_ptr sp(new memory_chunk_t) ;
+        pool_impl_.push_front(sp) ;
+        std::transform(std::begin(*sp),  std::end(*sp) , 
+                       &indexes_[last_size] , [] (object_impl_t &o){ return &o ; });
+        capacity_threshhold_ *= 2 ;
+        increase_in_progress_=false;
+        return ;
+    }
     using object_impl_t = object_holder<MAX_OBJ_SIZE> ;
-    using pool_impl_t =  std::vector<object_impl_t> ;
+    using memory_chunk_t = std::array<object_impl_t,MAX_CAPACITY> ;
+    using segment_ptr = std::shared_ptr<memory_chunk_t> ; 
+    using pool_impl_t =  std::forward_list<segment_ptr> ;
     using index_buffer_t = std::vector<object_impl_t*> ;
     index_buffer_t indexes_ ;
     pool_impl_t pool_impl_ ;
-    std::size_t min_capacity_ ;
-    std::size_t max_capacity_ ;
+    std::size_t first_ ; //index to first free address in the pool 
+    std::size_t capacity_threshhold_ ;
+    bool increase_in_progress_ ;
     std::mutex lock_ ;
-    typename index_buffer_t::iterator first_ ; //pointer to first free slot in the pool 
 };
 
 
@@ -123,7 +159,7 @@ struct parallel<T> {
         auto end = std::chrono::system_clock::now();
         auto result = end - start ;
         //std::clog << "elapsed=" << std::chrono::duration_cast<std::chrono::microseconds>(result).count() << ", tid=" << std::this_thread::get_id() << std::endl ;
-        std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
         return result;
     }
 };
@@ -142,7 +178,7 @@ struct parallel<T,Types...> {
 };
 
 int main(int argc, char** argv) {
-    memory::object_pool<max_size<A,B,C>::value> my_pool(100,10) ;
+    memory::object_pool<max_size<A,B,C>::value, 100, 10> my_pool ; ;
     std::shared_ptr<A> a ;
     my_pool.alloc(a, std::string("vlad")) ;
     {
@@ -152,12 +188,24 @@ int main(int argc, char** argv) {
     }
     std::clog << "name=" << a->s << std::endl ;
 
-    memory::object_pool<max_size<A,C>::value> parallel_pool(1000,2) ; 
+    using test_pool_increase_t = memory::object_pool<max_size<A,C>::value, 5, 2> ;
+    test_pool_increase_t parallel_pool ; 
     std::chrono::nanoseconds elapsed(0);
-    std::size_t iteration_count=1000;
+    std::size_t iteration_count=10000;
+    std::vector<std::future<std::chrono::nanoseconds>> futures;
     for (int i = 0; i <= iteration_count; ++i) {
-        elapsed += parallel<A,C,A,C,A,C,A,C,A,C>::fetch(parallel_pool , std::string("PARALLEL_EXECUTION")) ;
+        futures.push_back( std::async(std::launch::async,
+                                 parallel<A,C,A,C,A,C,A,C,A,C>::fetch<test_pool_increase_t,std::string>,
+                                 std::cref(parallel_pool) , std::string("PARALLEL_EXECUTION"))
+        ) ;
+        if ( futures.size() % 100) {
+            for ( auto &f : futures) 
+               elapsed += f.get() ;
+            futures.resize(0);
+        }
+    
     }
+    
     auto avrg_microsec = std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count()/(parallel<A,C,A,C,A,C,A,C,A,C>::count * iteration_count) ;
     std::cout << "pool average access time =" << avrg_microsec << " microsec" << std::endl ;
     std::cout << "parallel count(checking) = " << parallel<A,C,A,C,A,C,A,C,A,C>::count ;
