@@ -154,8 +154,7 @@ struct Process {
             int wpid = ::wait(&stat);
             if (wpid < 0) {
                 std::runtime_error(FAILED_WAIT  +  boost::lexical_cast<std::string>(stat) );
-            } else if ( intersection.count(wpid) ) {
-                intersection.erase(wpid);
+            } else if ( intersection.erase(wpid) ) {
                 sub_procs_.erase(wpid) ;
             }
         }
