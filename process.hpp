@@ -13,6 +13,8 @@
 #include <string>
 #include <vector>
 #include <set>
+#include <algorithm>
+#include <iterator>
 #include <sched.h>
 #include <unistd.h>
 #include <sys/wait.h>
@@ -143,13 +145,18 @@ struct Process {
     template<typename T = Handler,
              typename = typename std::enable_if<std::is_same<T,null_proc_handler>::value>::type>
     void wait(proc_list_t &sub_procs) {
-        while (!sub_procs.empty()) {
+        proc_list_t intersection;
+        std::set_intersection(sub_procs_.begin(), sub_procs_.end(),
+                          sub_procs.begin(), sub_procs.end(),
+                          std::inserter(intersection, intersection.begin()));
+        while (!intersection.empty()) {
             int stat;
             int wpid = ::wait(&stat);
             if (wpid < 0) {
                 std::runtime_error(FAILED_WAIT  +  boost::lexical_cast<std::string>(stat) );
-            } else {
-                sub_procs.erase(wpid);
+            } else if ( intersection.count(wpid) ) {
+                intersection.erase(wpid);
+                sub_procs_.erase(wpid) ;
             }
         }
     }

@@ -57,7 +57,10 @@ int main(int argc, char** argv) {
 }
 
 void process_single(const po::variables_map &vm, const std::string &queue_name ) {
-    std::clog << queue_name + ",pid=" << getpid() << ", program_name=" + vm[PP_PROGRAM_NAME].as<std::string>() + "\n";
+     std::clog << 
+    queue_name +  ",pid=" + 
+    boost::lexical_cast<std::string>(getpid()) + 
+    ", program_name=" + vm[PP_PROGRAM_NAME].as<std::string>() + "\n";
     //while speeping check with ps -ef your processes running
     sleep(15) ;
 }
