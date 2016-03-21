@@ -144,7 +144,8 @@ protected:
 
 template<typename PoolImpl>
 struct otl_connection_pool {
-    using otl_connect_ptr = std::shared_ptr<otl_connect> ;
+    using otl_connect_shared_ptr = std::shared_ptr<otl_connect> ;
+    using otl_connect_unique_ptr = std::unique_ptr<otl_connect, std::function<void(otl_connect*)>> ;
     otl_connection_pool(const std::string &tnsname, bool is_threaded=true) : pool_impl(tnsname, is_threaded), db_name()
     {}
 
@@ -156,10 +157,10 @@ struct otl_connection_pool {
         db_name = pool_impl.open(user_name, passwd, min_con, max_con, incr);
     }
     
-    otl_connect_ptr get(bool auto_commit=false) {
+    otl_connect_shared_ptr get_shared(bool auto_commit=false) {
         OCISvcCtx * svchp ;
         pool_impl.get(db_name,svchp) ;
-        otl_connect_ptr  ptr = std::shared_ptr<otl_connect>(new otl_connect(), [this,svchp](otl_connect *con) {
+        otl_connect_shared_ptr  ptr = otl_connect_shared_ptr(new otl_connect(), [this,svchp](otl_connect *con) {
             pool_impl.release(svchp) ;
             delete con;
         }) ;
@@ -167,6 +168,19 @@ struct otl_connection_pool {
         ptr->rlogon(pool_impl.get_envhp(), svchp) ;
         auto_commit ? ptr->auto_commit_on() : ptr->auto_commit_off() ;
         return ptr;
+    }
+    
+    otl_connect_unique_ptr get_unique(bool auto_commit=false) {
+        OCISvcCtx * svchp ;
+        pool_impl.get(db_name,svchp) ;
+        otl_connect_unique_ptr ptr = otl_connect_unique_ptr(new otl_connect(), [this,svchp](otl_connect *con) {
+            pool_impl.release(svchp) ;
+            delete con;
+        }) ;
+        
+        ptr->rlogon(pool_impl.get_envhp(), svchp) ;
+        auto_commit ? ptr->auto_commit_on() : ptr->auto_commit_off() ;
+        return ptr; // ptr is temporary, RVO calls std::move(ptr) automatically
     }
     
 private:
