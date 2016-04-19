@@ -43,6 +43,7 @@ protected :
     OCIError *errhp;   // OCI Error handle
          
     bool init(bool threaded_mode) {
+        otl_impl.set_connect_mode(threaded_mode);
         int is_ok = otl_impl.server_attach(tnsname.c_str()) ; 
         envhp  = otl_impl.get_envhp();
         errhp  = otl_impl.get_errhp();
