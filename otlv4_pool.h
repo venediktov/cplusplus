@@ -85,6 +85,9 @@ struct stateless_pool_impl : protected basic_pool_impl
                                 OTL_RCAST(dvoid **, &poolhp), 
                                 OCI_HTYPE_SPOOL, 0, nullptr);
     }
+    ~stateless_pool_impl() {
+        OCIHandleFree(OTL_RCAST(dvoid *, poolhp), OTL_SCAST(ub4, OCI_HTYPE_SPOOL));
+    }
     std::string open(const std::string &user_name, const std::string &passwd, int min_con, int max_con, int incr )  {
         using namespace std::placeholders;
         auto create_pool = std::bind(OCISessionPoolCreate,_1,_2,poolhp,_3,_4,_5,_6,_7,_8,_9,_10,_11,_12,_13,OCI_SPC_HOMOGENEOUS) ;
@@ -113,20 +116,41 @@ protected:
 struct statefull_pool_impl : protected basic_pool_impl 
 {
     using Base = basic_pool_impl;
-    statefull_pool_impl(const std::string &tnsname, bool is_threaded) : Base(tnsname,is_threaded), poolhp() {
+    statefull_pool_impl(const std::string &tnsname, bool is_threaded) : Base(tnsname,is_threaded), poolhp(), authp() {
         //Allocate CPool poolhp
-        int status = OCIHandleAlloc(OTL_RCAST(dvoid *, Base::envhp), 
-                                OTL_RCAST(dvoid **, &poolhp), 
+        int status = OCIHandleAlloc(OTL_RCAST(dvoid *, Base::envhp),
+                                OTL_RCAST(dvoid **, &poolhp),
                                 OCI_HTYPE_CPOOL, 0, nullptr);
+        //Allocate OCIAuthInfo handle 
+        status |=   OCIHandleAlloc(OTL_RCAST(dvoid *, Base::envhp),
+                                   OTL_RCAST(dvoid **, &authp),
+                                   OCI_HTYPE_AUTHINFO, 0, nullptr); 
+    }
+    ~statefull_pool_impl() {
+        OCIHandleFree(OTL_RCAST(dvoid *, poolhp), OTL_SCAST(ub4, OCI_HTYPE_CPOOL));
+        OCIHandleFree(OTL_RCAST(dvoid *, authp), OTL_SCAST(ub4, OCI_HTYPE_AUTHINFO));
     }
     std::string open(const std::string &user_name, const std::string &passwd, int min_con, int max_con, int incr )  {
         using namespace std::placeholders;
+        
+        OCIAttrSet( OTL_RCAST(dvoid *, authp),
+                    OTL_SCAST(ub4, OCI_HTYPE_AUTHINFO),
+                    OTL_RCAST(dvoid *, OTL_CCAST(char *, user_name.data())),
+                    OTL_SCAST(ub4,user_name.size()),
+                    OTL_SCAST(ub4, OCI_ATTR_USERNAME), Base::errhp);
+
+        OCIAttrSet( OTL_RCAST(dvoid *, authp),
+                    OTL_SCAST(ub4, OCI_HTYPE_AUTHINFO),
+                    OTL_RCAST(dvoid *, OTL_CCAST(char *, passwd.data())),
+                    OTL_SCAST(ub4,passwd.size()),
+                    OTL_SCAST(ub4, OCI_ATTR_PASSWORD), Base::errhp);
+                    
         auto create_pool = std::bind(OCIConnectionPoolCreate,_1,_2,poolhp,_3,_4,_5,_6,_7,_8,_9,_10,_11,_12,_13,OCI_DEFAULT) ;
         std::string name = Base::open<sb4>(create_pool,user_name,passwd,min_con,max_con,incr) ;
         return name;
     }
     void get(const std::string &pool_name, OCISvcCtx *& svchp) {
-        OCISessionGet(Base::envhp, Base::errhp, &svchp, NULL, 
+        OCISessionGet(Base::envhp, Base::errhp, &svchp, authp, 
                        OTL_RCAST(OraText*, OTL_CCAST(char*, pool_name.data())), pool_name.size(),
                        NULL, 0, NULL, NULL, NULL, OCI_SESSGET_CPOOL ) ;
     }
@@ -141,6 +165,7 @@ struct statefull_pool_impl : protected basic_pool_impl
     }
 protected:
      OCICPool   *poolhp; // OCI CPool handle
+     OCIAuthInfo *authp;
 };
 
 template<typename PoolImpl>
