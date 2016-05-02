@@ -1,1 +1,0 @@
-/usr/bin/g++   -g3 -gdwarf-2   CMakeFiles/process_simple.dir/process_simple.cpp.o  -o process_simple -rdynamic -lboost_program_options 

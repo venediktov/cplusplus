@@ -1,8 +1,0 @@
-Scanning dependencies of target process_exec
-[ 50%] Building CXX object CMakeFiles/process_exec.dir/process_exec.cpp.o
-Linking CXX executable process_exec
-[ 50%] Built target process_exec
-Scanning dependencies of target process_simple
-[100%] Building CXX object CMakeFiles/process_simple.dir/process_simple.cpp.o
-Linking CXX executable process_simple
-[100%] Built target process_simple
