@@ -1,0 +1,245 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configurationDescriptor version="95">
+  <logicalFolder name="root" displayName="root" projectFiles="true" kind="ROOT">
+    <df root="." name="0">
+      <df name="CMakeFiles">
+        <df name="3.2.2">
+          <df name="CompilerIdC">
+            <in>CMakeCCompilerId.c</in>
+          </df>
+          <df name="CompilerIdCXX">
+            <in>CMakeCXXCompilerId.cpp</in>
+          </df>
+        </df>
+        <df name="CMakeTmp">
+        </df>
+        <df name="pool_test.dir">
+        </df>
+        <df name="process_exec.dir">
+        </df>
+        <df name="process_simple.dir">
+        </df>
+        <df name="test_move.dir">
+        </df>
+        <in>feature_tests.c</in>
+        <in>feature_tests.cxx</in>
+      </df>
+      <df name="IBJts">
+        <df name="CMakeFiles">
+          <df name="3.2.2">
+            <df name="CompilerIdC">
+              <in>CMakeCCompilerId.c</in>
+            </df>
+            <df name="CompilerIdCXX">
+              <in>CMakeCXXCompilerId.cpp</in>
+            </df>
+          </df>
+          <df name="CMakeTmp">
+          </df>
+          <in>feature_tests.c</in>
+          <in>feature_tests.cxx</in>
+        </df>
+        <df name="lib">
+        </df>
+        <df name="order_book">
+          <df name="CMakeFiles">
+            <df name="3.2.2">
+              <df name="CompilerIdC">
+                <in>CMakeCCompilerId.c</in>
+              </df>
+              <df name="CompilerIdCXX">
+                <in>CMakeCXXCompilerId.cpp</in>
+              </df>
+            </df>
+            <df name="CMakeTmp">
+            </df>
+            <df name="order_book.dir">
+            </df>
+            <df name="Progress">
+            </df>
+            <in>feature_tests.c</in>
+            <in>feature_tests.cxx</in>
+          </df>
+          <in>entity_cache.hpp</in>
+          <in>memory_types.hpp</in>
+          <in>order_entity.hpp</in>
+          <in>orderbook.hpp</in>
+          <in>ordermgr.cpp</in>
+        </df>
+        <df name="samples">
+          <df name="Java">
+            <df name="apidemo">
+              <df name="util">
+              </df>
+            </df>
+            <df name="samples">
+              <df name="dnhedge">
+              </df>
+              <df name="rfq">
+              </df>
+            </df>
+            <df name="TestJavaClient">
+            </df>
+          </df>
+          <df name="TestPosix">
+            <df name="CMakeFiles">
+              <df name="3.2.2">
+                <df name="CompilerIdC">
+                  <in>CMakeCCompilerId.c</in>
+                </df>
+                <df name="CompilerIdCXX">
+                  <in>CMakeCXXCompilerId.cpp</in>
+                </df>
+              </df>
+              <df name="CMakeTmp">
+              </df>
+              <df name="PosixSocketClientTest.dir">
+              </df>
+              <in>feature_tests.c</in>
+              <in>feature_tests.cxx</in>
+            </df>
+            <in>Main.cpp</in>
+            <in>PosixTestClient.cpp</in>
+            <in>PosixTestClient.h</in>
+          </df>
+        </df>
+        <df name="source">
+          <df name="CMakeFiles">
+          </df>
+          <df name="JavaClient">
+            <df name="com">
+              <df name="ib">
+                <df name="client">
+                </df>
+                <df name="contracts">
+                </df>
+                <df name="controller">
+                </df>
+              </df>
+            </df>
+          </df>
+          <df name="PosixClient">
+            <df name="CMakeFiles">
+              <df name="PosixSocketClientTest.dir">
+              </df>
+            </df>
+            <df name="lib">
+            </df>
+            <df name="Shared">
+              <in>CommissionReport.h</in>
+              <in>CommonDefs.h</in>
+              <in>Contract.h</in>
+              <in>EClient.h</in>
+              <in>EClientSocketBase.h</in>
+              <in>EClientSocketBaseImpl.h</in>
+              <in>EWrapper.h</in>
+              <in>Execution.h</in>
+              <in>HScrollListBox.cpp</in>
+              <in>HScrollListBox.h</in>
+              <in>IBString.h</in>
+              <in>Order.h</in>
+              <in>OrderState.h</in>
+              <in>ScannerSubscription.h</in>
+              <in>StdAfx.h</in>
+              <in>TagValue.h</in>
+              <in>TwsSocketClientErrors.h</in>
+              <in>shared_ptr.h</in>
+            </df>
+            <df name="src">
+              <df name="CMakeFiles">
+                <df name="3.2.2">
+                  <df name="CompilerIdC">
+                    <in>CMakeCCompilerId.c</in>
+                  </df>
+                  <df name="CompilerIdCXX">
+                    <in>CMakeCXXCompilerId.cpp</in>
+                  </df>
+                </df>
+                <df name="CMakeTmp">
+                </df>
+                <df name="iblib.dir">
+                </df>
+                <in>feature_tests.c</in>
+                <in>feature_tests.cxx</in>
+              </df>
+              <in>EClientSocketBase.cpp</in>
+              <in>EPosixClientSocket.cpp</in>
+              <in>EPosixClientSocket.h</in>
+              <in>EPosixClientSocketPlatform.h</in>
+            </df>
+          </df>
+          <df name="TestPosix">
+            <df name="CMakeFiles">
+              <df name="PosixSocketClientTest.dir">
+              </df>
+            </df>
+          </df>
+        </df>
+      </df>
+      <in>fixed_string.hpp</in>
+      <in>otlv4_pool.h</in>
+      <in>pool.cpp</in>
+      <in>process.hpp</in>
+      <in>process_exec.cpp</in>
+      <in>process_simple.cpp</in>
+      <in>test_move.cpp</in>
+      <in>z85_enc.hpp</in>
+    </df>
+  </logicalFolder>
+  <projectmakefile>Makefile</projectmakefile>
+  <confs>
+    <conf name="Default" type="0">
+      <toolsSet>
+        <developmentServer>localhost</developmentServer>
+        <platform>2</platform>
+      </toolsSet>
+      <compile>
+        <compiledirpicklist>
+          <compiledirpicklistitem>.</compiledirpicklistitem>
+          <compiledirpicklistitem>${AUTO_FOLDER}</compiledirpicklistitem>
+        </compiledirpicklist>
+        <compiledir>${AUTO_FOLDER}</compiledir>
+        <compilecommandpicklist>
+          <compilecommandpicklistitem>${MAKE} ${ITEM_NAME}.o</compilecommandpicklistitem>
+          <compilecommandpicklistitem>${AUTO_COMPILE}</compilecommandpicklistitem>
+        </compilecommandpicklist>
+        <compilecommand>${AUTO_COMPILE}</compilecommand>
+      </compile>
+      <dbx_gdbdebugger version="1">
+        <gdb_pathmaps>
+        </gdb_pathmaps>
+        <gdb_interceptlist>
+          <gdbinterceptoptions gdb_all="false" gdb_unhandled="true" gdb_unexpected="true"/>
+        </gdb_interceptlist>
+        <gdb_signals>
+        </gdb_signals>
+        <gdb_options>
+          <DebugOptions>
+          </DebugOptions>
+        </gdb_options>
+        <gdb_buildfirst gdb_buildfirst_overriden="false" gdb_buildfirst_old="false"/>
+      </dbx_gdbdebugger>
+      <nativedebugger version="1">
+        <engine>gdb</engine>
+      </nativedebugger>
+      <runprofile version="9">
+        <runcommandpicklist>
+          <runcommandpicklistitem>"${OUTPUT_PATH}"</runcommandpicklistitem>
+          <runcommandpicklistitem>"${OUTPUT_PATH}" </runcommandpicklistitem>
+          <runcommandpicklistitem>"${OUTPUT_PATH}" --host "127.0.0.1 --port </runcommandpicklistitem>
+          <runcommandpicklistitem>"${OUTPUT_PATH}" --host "127.0.0.1 --port 7497</runcommandpicklistitem>
+          <runcommandpicklistitem>./order_bok --host "127.0.0.1 --port 7497</runcommandpicklistitem>
+          <runcommandpicklistitem>./order_book --host "127.0.0.1 --port 7497</runcommandpicklistitem>
+        </runcommandpicklist>
+        <runcommand>./order_book --host "127.0.0.1 --port 7497</runcommand>
+        <arguments>--host "127.0.0.1 --port 7497</arguments>
+        <rundir>IBJts/order_book</rundir>
+        <buildfirst>false</buildfirst>
+        <terminal-type>0</terminal-type>
+        <remove-instrumentation>0</remove-instrumentation>
+        <environment>
+        </environment>
+      </runprofile>
+    </conf>
+  </confs>
+</configurationDescriptor>

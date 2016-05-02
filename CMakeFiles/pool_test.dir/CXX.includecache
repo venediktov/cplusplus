@@ -1,0 +1,30 @@
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/vlad1819/C++/cplusplus/pool.cpp
+memory
+-
+utility
+-
+mutex
+-
+vector
+-
+forward_list
+-
+algorithm
+-
+future
+-
+iostream
+-
+future
+-
+chrono
+-
+

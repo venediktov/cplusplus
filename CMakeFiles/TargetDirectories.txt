@@ -1,0 +1,5 @@
+/home/vlad1819/C++/cplusplus/CMakeFiles/process_exec.dir
+/home/vlad1819/C++/cplusplus/CMakeFiles/pool_test.dir
+/home/vlad1819/C++/cplusplus/CMakeFiles/test_move.dir
+/home/vlad1819/C++/cplusplus/IBJts/source/PosixClient/CMakeFiles/PosixSocketClientTest.dir
+/home/vlad1819/C++/cplusplus/CMakeFiles/process_simple.dir

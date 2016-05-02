@@ -6,11 +6,16 @@ find_package(
 	)
 
 ADD_DEFINITIONS(
-	-std=c++11 # Or -std=c++0x
+	-std=c++11 -g #-fno-elide-constructors # Or -std=c++0x
 	# Other flags
 	)
 
 include_directories(${Boost_INCLUDE_DIRS} ../handlers)
+
+add_executable(
+	test_move 
+	test_move.cpp
+	)
 
 add_executable(
 	process_simple 
@@ -41,4 +46,7 @@ target_link_libraries(
 	pool_test
         pthread
 	)
+
+
+add_subdirectory(IBJts)
 

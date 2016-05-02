@@ -1,0 +1,32 @@
+[
+{
+  "directory": "/home/vlad1819/C++/cplusplus",
+  "command": "/usr/bin/g++    -g3 -gdwarf-2 -I/home/vlad1819/C++/cplusplus/../handlers    -std=c++11 -g -fno-elide-constructors -o CMakeFiles/pool_test.dir/pool.cpp.o -c /home/vlad1819/C++/cplusplus/pool.cpp",
+  "file": "/home/vlad1819/C++/cplusplus/pool.cpp"
+},
+{
+  "directory": "/home/vlad1819/C++/cplusplus",
+  "command": "/usr/bin/g++    -g3 -gdwarf-2 -I/home/vlad1819/C++/cplusplus/../handlers    -std=c++11 -g -fno-elide-constructors -o CMakeFiles/process_exec.dir/process_exec.cpp.o -c /home/vlad1819/C++/cplusplus/process_exec.cpp",
+  "file": "/home/vlad1819/C++/cplusplus/process_exec.cpp"
+},
+{
+  "directory": "/home/vlad1819/C++/cplusplus",
+  "command": "/usr/bin/g++    -g3 -gdwarf-2 -I/home/vlad1819/C++/cplusplus/../handlers    -std=c++11 -g -fno-elide-constructors -o CMakeFiles/process_simple.dir/process_simple.cpp.o -c /home/vlad1819/C++/cplusplus/process_simple.cpp",
+  "file": "/home/vlad1819/C++/cplusplus/process_simple.cpp"
+},
+{
+  "directory": "/home/vlad1819/C++/cplusplus",
+  "command": "/usr/bin/g++    -g3 -gdwarf-2 -I/home/vlad1819/C++/cplusplus/../handlers    -std=c++11 -g -fno-elide-constructors -o CMakeFiles/test_move.dir/test_move.cpp.o -c /home/vlad1819/C++/cplusplus/test_move.cpp",
+  "file": "/home/vlad1819/C++/cplusplus/test_move.cpp"
+},
+{
+  "directory": "/home/vlad1819/C++/cplusplus/IBJts/source/PosixClient",
+  "command": "/usr/bin/g++   -DIB_USE_STD_STRING -g3 -gdwarf-2 -I/home/vlad1819/C++/cplusplus/../handlers -I/home/vlad1819/C++/cplusplus/IBJts/samples/TestPosix/../../source/PosixClient/Shared -I/home/vlad1819/C++/cplusplus/IBJts/samples/TestPosix/../../source/PosixClient/src    -std=c++11 -g -fno-elide-constructors -std=c++11 -g -o CMakeFiles/PosixSocketClientTest.dir/Main.cpp.o -c /home/vlad1819/C++/cplusplus/IBJts/samples/TestPosix/Main.cpp",
+  "file": "/home/vlad1819/C++/cplusplus/IBJts/samples/TestPosix/Main.cpp"
+},
+{
+  "directory": "/home/vlad1819/C++/cplusplus/IBJts/source/PosixClient",
+  "command": "/usr/bin/g++   -DIB_USE_STD_STRING -g3 -gdwarf-2 -I/home/vlad1819/C++/cplusplus/../handlers -I/home/vlad1819/C++/cplusplus/IBJts/samples/TestPosix/../../source/PosixClient/Shared -I/home/vlad1819/C++/cplusplus/IBJts/samples/TestPosix/../../source/PosixClient/src    -std=c++11 -g -fno-elide-constructors -std=c++11 -g -o CMakeFiles/PosixSocketClientTest.dir/PosixTestClient.cpp.o -c /home/vlad1819/C++/cplusplus/IBJts/samples/TestPosix/PosixTestClient.cpp",
+  "file": "/home/vlad1819/C++/cplusplus/IBJts/samples/TestPosix/PosixTestClient.cpp"
+}
+]

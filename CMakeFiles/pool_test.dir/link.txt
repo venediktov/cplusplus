@@ -1,0 +1,1 @@
+/usr/bin/g++   -g3 -gdwarf-2   CMakeFiles/pool_test.dir/pool.cpp.o  -o pool_test -rdynamic -lpthread 
