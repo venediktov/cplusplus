@@ -15,7 +15,7 @@ endif()
 
 find_package(
 	Boost
-	COMPONENTS program_options system
+	COMPONENTS program_options serialization system
 	)
 
 ADD_DEFINITIONS(

@@ -6,7 +6,7 @@ elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
   # using GCC
   file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/../lib)
   set(CMAKE_CXX_COMPILER /usr/bin/g++)
-  set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/../lib)
+  set(LIBRARY_OUTPUT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../lib)
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
   # using Intel C++
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")

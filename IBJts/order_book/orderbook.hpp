@@ -19,37 +19,7 @@
 #include <iostream>
 #include <boost/tuple/tuple.hpp>
 
-//TODO: add boost serialization here for OrderContract class
-//#include <boost/serialization/serialization.hpp>
-//#include <boost/serialization/nvp.hpp>
-
-namespace interactive {
-
-struct OrderContact 
-{
-    friend class boost::serialization::access;
-    
-    OrderContact(const Order &order , const Contract &contract) : order(order), contract(contract) {
-        account  = order.account;
-        ticker   = contract.symbol;
-        order_id = order.orderId ;
-    }
-    
-    template<class Archive>
-    void serialize(Archive & ar, const unsigned int version)
-    {
-        ar & order;
-        ar & contract;
-    }
-    
-    Order order ;
-    Contract contract;
-    std::string account;
-    std::string ticker ;
-    long order_id ;    
-};  
-
-
+#include <boost/serialization/serialization.hpp>
 namespace boost {
 namespace serialization {
 
@@ -77,11 +47,55 @@ void serialize(Archive & ar, Contract & contract, const unsigned int version)
 } // namespace serialization
 } // namespace boost
 
+namespace interactive {
+
+struct OrderContract 
+{
+    friend class boost::serialization::access;
+    
+    OrderContract() {}
+    
+    OrderContract(const Order &o , const Contract &c) : OrderContract() {
+        order = order;
+        contract = contract ; 
+        account  = order.account;
+        ticker   = contract.symbol;
+        order_id = order.orderId ;
+    }
+    
+    void place() { 
+        cmd = OrderInstruction::PLACE;
+    }
+    void cancel() {
+        cmd = OrderInstruction::CANCEL;
+    }
+    
+    template<class Archive>
+    void serialize(Archive & ar, const unsigned int version=0)
+    {
+        ar & cmd;
+        ar & order;
+        ar & contract;
+        //below for de-serialization from Archive
+        account  = order.account;
+        ticker   = contract.symbol;
+        order_id = order.orderId ;
+    }
+    
+    OrderInstruction cmd{OrderInstruction::UNDEFINED};
+    Order order{} ;
+    Contract contract{};
+    std::string account{};
+    std::string ticker{} ;
+    long order_id{} ;    
+};  
+
 
 template<typename Alloc>
 class OrderBook : protected EWrapper {
 public:
-    OrderBook(const std::string &cname) : client_{new EPosixClientSocket(this)}, cache_{cname} 
+    OrderBook(const std::string &cname, const std::function<OrderContract()> queue) : 
+        client_{new EPosixClientSocket(this)}, queue_{queue}, cache_{cname}, next_order_ids_{}
     {}
     OrderBook(const OrderBook& orig) = delete ;
     virtual ~OrderBook() {disconnect();}
@@ -109,15 +123,15 @@ public:
     bool isConnected() const {
 	return client_->isConnected();
     }
-    template<typename Contract , typename Order>
-    void place_order(const Contract &contract , const Order &order ) { //const {
-	printf( "Storing Order : %s %ld %s at %f\n", order.action.c_str(), order.totalQuantity, contract.symbol.c_str(), order.lmtPrice);
+    //template<typename Contract , typename Order>
+    //void place_order(const Contract &contract , const Order &order ) { //const {
+    //printf( "Storing Order : %s %ld %s at %f\n", order.action.c_str(), order.totalQuantity, contract.symbol.c_str(), order.lmtPrice);
 	//client_->placeOrder( next_order_ids_, contract, order);
-        cache_.insert(OrderContact(order, contract)) ;
-    }
-    void cancel_order(OrderId order_id) {
-        client_->cancelOrder(order_id);
-    }
+    // cache_.insert(OrderContact(order, contract)) ;
+    //}
+    //void cancel_order(OrderId order_id) {
+    //    client_->cancelOrder(order_id);
+    //}
     
 protected:    
     // events from EWrapper
@@ -150,9 +164,11 @@ protected:
             double unrealizedPNL, double realizedPNL, const IBString& accountName) {}
     void updateAccountTime(const IBString& timeStamp) {}
     void accountDownloadEnd(const IBString& accountName) {}
-    void nextValidId(OrderId orderId) {
-        std::cout << "nextValidId=" << orderId << ", call back from API" << std::endl ;
-	next_order_ids_.push_back(orderId);
+    void nextValidId(OrderId order_id) {
+        std::cout << "nextValidId=" << order_id << ", call back from API , forward to queue" << std::endl ;
+	next_order_ids_.push_back(order_id);
+        //should block here untill order is available from client GUI
+        dispatch_order(queue_()) ;
     }
     void contractDetails(int reqId, const ContractDetails& contractDetails) {}
     void bondContractDetails(int reqId, const ContractDetails& contractDetails) {}
@@ -251,23 +267,38 @@ private:
         }
 	
     }
-    void dispatch_order() {
-        using Tag = typename ipc::data::order_entity<Alloc>::status_account_tag ;
-        OrderId next_order_id = next_order_ids_.pop_front() ;
-        std::vector<OrderContact> orders;
-        if ( !cache_.template retrieve<Tag>(orders,OrderStatus::CREATED) ) {
-            return;   
+    void dispatch_order(const OrderContract &value) {
+        //using Tag = typename ipc::data::order_entity<Alloc>::status_account_tag ;
+        if ( value.cmd != OrderInstruction::PLACE || value.cmd != OrderInstruction::CANCEL) {
+            printf( "Bad Order : %s %ld %s at %f\n", value.order.action.c_str(), value.order.totalQuantity, value.contract.symbol.c_str(), value.order.lmtPrice);
+            return;
         }
-        const auto &value = orders.at(0) ;
-        //printf( "Placing Order %ld: %s %ld %s at %f\n", next_order_id, order.action.c_str(), order.totalQuantity, contract.symbol.c_str(), order.lmtPrice);
-	client_->placeOrder(next_order_id, value.contract, value.order);
-    }
-    void dispatch_cancel() {
-         //client_->cancelOrder(order_id);
+        OrderId next_order_id = next_order_ids_.front() ;
+        next_order_ids_.pop_front() ;
+        //std::vector<OrderContact> orders;
+        //if ( !cache_.template retrieve<Tag>(orders,OrderStatus::CREATED) ) {
+        //    return;   
+        //}
+        //const auto &value = orders.at(0) ;
+        printf( "Submitting Order %ld: %s %ld %s at %f\n", 
+                next_order_id, value.order.action.c_str(), 
+                value.order.totalQuantity, 
+                value.contract.symbol.c_str(), value.order.lmtPrice
+        );
+	if ( value.cmd == OrderInstruction::PLACE) {
+            client_->placeOrder(next_order_id, value.contract, value.order);
+        } else if (value.cmd == OrderInstruction::CANCEL) {
+             client_->cancelOrder(value.order_id);
+        }
+        if ( !cache_.insert(value) ) {
+            std::cout  << "failed to insert order in cache:" << std::endl;
+        }
+        
     }
     //using WireOrder_t = std::tuple<Contract,Order> ;
     std::unique_ptr<EPosixClientSocket> client_;
     std::future<void> dispatcher_ {};
+    std::function<OrderContract()> queue_;
     std::list<OrderId> next_order_ids_ {};
     datacache::entity_cache<Alloc, ipc::data::order_container>  cache_ ;
     time_t sleep_deadline;

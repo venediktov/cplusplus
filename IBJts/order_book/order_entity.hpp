@@ -33,6 +33,12 @@
  
 //todo: place it into separate file
  
+enum class OrderInstruction : std::int8_t {
+    PLACE       = 1,
+    CANCEL      = 0,
+    UNDEFINED   = -1
+};
+
 enum class OrderStatus : std::int8_t {
     CREATED       = 0,
     SUBMITTED     = 1,
