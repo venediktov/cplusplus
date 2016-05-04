@@ -17,7 +17,8 @@
 #include <string>
 #include <list>
 #include <iostream>
-#include <boost/tuple/tuple.hpp>
+#include <boost/optional.hpp>
+
 
 #include <boost/serialization/serialization.hpp>
 namespace boost {
@@ -49,6 +50,18 @@ void serialize(Archive & ar, Contract & contract, const unsigned int version)
 
 namespace interactive {
 
+struct OrderResponse {
+     IBString status;
+     int filled;
+     int remaining;
+     double avgFillPrice;
+     int permId;
+     int parentId;
+     double lastFillPrice;
+     int clientId; 
+     IBString whyHeld;
+};
+
 struct OrderContract 
 {
     friend class boost::serialization::access;
@@ -56,8 +69,8 @@ struct OrderContract
     OrderContract() {}
     
     OrderContract(const Order &o , const Contract &c) : OrderContract() {
-        order = order;
-        contract = contract ; 
+        order = o;
+        contract = c ; 
         account  = order.account;
         ticker   = contract.symbol;
         order_id = order.orderId ;
@@ -68,6 +81,9 @@ struct OrderContract
     }
     void cancel() {
         cmd = OrderInstruction::CANCEL;
+    }
+    void add_response(const OrderResponse & r) {
+        oresp = r;
     }
     
     template<class Archive>
@@ -87,14 +103,17 @@ struct OrderContract
     Contract contract{};
     std::string account{};
     std::string ticker{} ;
-    long order_id{} ;    
+    long order_id{} ;
+    OrderResponse oresp{};    
 };  
 
 
-template<typename Alloc>
+template<typename Memory>
 class OrderBook : protected EWrapper {
+    using Cache = datacache::entity_cache<Memory, ipc::data::order_container> ;
+    using Alloc = typename Cache::char_allocator ;
 public:
-    OrderBook(const std::string &cname, const std::function<OrderContract()> queue) : 
+    OrderBook(const std::string &cname, const std::function<boost::optional<OrderContract>()> queue) : 
         client_{new EPosixClientSocket(this)}, queue_{queue}, cache_{cname}, next_order_ids_{}
     {}
     OrderBook(const OrderBook& orig) = delete ;
@@ -147,10 +166,29 @@ protected:
     void orderStatus(OrderId orderId, const IBString &status, int filled,
             int remaining, double avgFillPrice, int permId, int parentId,
             double lastFillPrice, int clientId, const IBString& whyHeld) {
-        //Implement order_book_cache.update(orderId , order) ;
+        
+        OrderResponse r;
+        r.status=status;
+        r.filled = filled;
+        r.remaining = remaining;
+        r.avgFillPrice = avgFillPrice ;
+        r.permId = permId;
+        r.lastFillPrice = lastFillPrice;
+        r.clientId = clientId;
+        r.whyHeld = whyHeld;
+        //Unfortunately we don't have enough to reconstruct OrderContract so lookup is needed
+        std::vector<std::shared_ptr<OrderContract>> orders;
+        using Tag = typename ipc::data::order_entity<Alloc>::order_tag ;
+        if ( !cache_.template retrieve<Tag>(orders, orderId) ) {
+            return;   
+        }
+        auto valuep = orders.at(0) ;
+        valuep->add_response(r) ;
+        //TODO: cache_.template update<Tag>(*valuep , orderId ) ;
         std::cout << "TODO:  Order: id" << orderId << ", status=" << status ;
     }
-    void openOrder(OrderId orderId, const Contract&, const Order&, const OrderState&) {
+    void openOrder(OrderId orderId, const Contract& contract, const Order& order, const OrderState& state) {
+        //TODO: order_book_cache.update(orderId , OrderContract(order, contact)) ;
         std::cout << "TODO: OrderClient::openOrder " << orderId << std::endl ;
     }
     void openOrderEnd() {}
@@ -167,8 +205,6 @@ protected:
     void nextValidId(OrderId order_id) {
         std::cout << "nextValidId=" << order_id << ", call back from API , forward to queue" << std::endl ;
 	next_order_ids_.push_back(order_id);
-        //should block here untill order is available from client GUI
-        dispatch_order(queue_()) ;
     }
     void contractDetails(int reqId, const ContractDetails& contractDetails) {}
     void bondContractDetails(int reqId, const ContractDetails& contractDetails) {}
@@ -212,6 +248,9 @@ protected:
     void displayGroupUpdated( int reqId, const IBString& contractInfo) {}
 private:
     void dispatch_messages()  {
+        if ( !next_order_ids_.empty()) {
+            dispatch_order() ;
+        }
         fd_set readSet, writeSet, errorSet;
 	struct timeval tval;
 	tval.tv_usec = 500000; //TODO: pass it into dispatch_messages
@@ -267,10 +306,17 @@ private:
         }
 	
     }
-    void dispatch_order(const OrderContract &value) {
+    void dispatch_order() {
         //using Tag = typename ipc::data::order_entity<Alloc>::status_account_tag ;
-        if ( value.cmd != OrderInstruction::PLACE || value.cmd != OrderInstruction::CANCEL) {
-            printf( "Bad Order : %s %ld %s at %f\n", value.order.action.c_str(), value.order.totalQuantity, value.contract.symbol.c_str(), value.order.lmtPrice);
+        //should block not  block here see queue timeout
+        auto opt = queue_() ;
+        if ( !opt ) {
+            std::cout << "Queue is empty return!" << std::endl ;
+            return ;
+        }
+        OrderContract value = *opt ;
+        if ( !(value.cmd == OrderInstruction::PLACE || value.cmd == OrderInstruction::CANCEL)) {
+            printf( "Bad Order [%d]: %s %ld %s at %f\n", (int)value.cmd, value.order.action.c_str(), value.order.totalQuantity, value.contract.symbol.c_str(), value.order.lmtPrice);
             return;
         }
         OrderId next_order_id = next_order_ids_.front() ;
@@ -295,12 +341,11 @@ private:
         }
         
     }
-    //using WireOrder_t = std::tuple<Contract,Order> ;
     std::unique_ptr<EPosixClientSocket> client_;
     std::future<void> dispatcher_ {};
-    std::function<OrderContract()> queue_;
+    std::function<boost::optional<OrderContract>()> queue_;
     std::list<OrderId> next_order_ids_ {};
-    datacache::entity_cache<Alloc, ipc::data::order_container>  cache_ ;
+    Cache  cache_ ;
     time_t sleep_deadline;
 };
 

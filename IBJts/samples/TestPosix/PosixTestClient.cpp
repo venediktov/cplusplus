@@ -133,6 +133,7 @@ void PosixTestClient::processMessages()
 
 		if( FD_ISSET( m_pClient->fd(), &writeSet)) {
 			// socket is ready for writing
+                    std::cout << "onSend()"  << std::endl ;
 			m_pClient->onSend();
 		}
 
@@ -141,6 +142,7 @@ void PosixTestClient::processMessages()
 
 		if( FD_ISSET( m_pClient->fd(), &readSet)) {
 			// socket is ready for reading
+                    std::cout << "onReceive()"  << std::endl ;
 			m_pClient->onReceive();
 		}
 	}

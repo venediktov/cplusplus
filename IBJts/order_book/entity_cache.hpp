@@ -176,6 +176,19 @@ _container_ptr = _segment_ptr->template find_or_construct<Container_t>( _cache_n
         return !n;
     }
        
+    template<typename Tag, typename Serializable, typename Arg>
+    bool retrieve(std::vector<std::shared_ptr<Serializable>> &entries, Arg && arg) {
+        bip::sharable_lock<bip::named_upgradable_mutex> guard(_named_mutex);
+        bool is_found = false;
+        auto p = _container_ptr->template get<Tag>().equal_range(std::forward<Arg>(arg));
+        std::transform ( p.first, p.second, std::back_inserter(entries), [] ( const Data_t &data ) {
+            std::shared_ptr<Serializable> impl_ptr { std::make_shared<Serializable>() } ;
+            data.retrieve(*impl_ptr) ;
+            return impl_ptr;
+        });
+        return !entries.empty();
+    }
+      
     template<typename Tag, typename Serializable, typename ...Args>
     bool retrieve(std::vector<std::shared_ptr<Serializable>> &entries, Args&& ...args) {
         bip::sharable_lock<bip::named_upgradable_mutex> guard(_named_mutex);

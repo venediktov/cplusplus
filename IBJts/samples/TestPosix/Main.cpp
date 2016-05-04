@@ -16,8 +16,8 @@ const unsigned SLEEP_TIME = 10;
 int main(int argc, char** argv)
 {
 	const char* host = argc > 1 ? argv[1] : "";
-	//unsigned int port = 7496;
-	unsigned int port = 4002;
+	unsigned int port = 7497;
+	//unsigned int port = 4002;
 	int clientId = 0;
 
 	unsigned attempt = 0;

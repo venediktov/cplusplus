@@ -23,6 +23,7 @@
 #include <boost/core/demangle.hpp>
 #include <future>
 #include <chrono>
+#include <boost/optional/optional.hpp>
  
 namespace po = boost::program_options;
  
@@ -37,7 +38,7 @@ using mpclmi::ipc::Shared;
 using interactive::OrderContract;
 using namespace boost::interprocess;
  
-OrderContract  fetch_order() ;
+boost::optional<OrderContract>  fetch_order() ;
 
 int main(int argc, char **argv) {
        
@@ -91,8 +92,7 @@ int main(int argc, char **argv) {
     });
     
     book.connect(host,port) ; //will start a single thread dispatcher inside the book
-    std::this_thread::sleep_for(std::chrono::seconds(3)) ;
-    std::cout << "start reading from " << constant::ORDER_QUEUE_NAME << std::endl ;
+    std::cout << "start populating queue" << constant::ORDER_QUEUE_NAME << std::endl ;
     //read from queue and push orders into book
     std::future<void> order_client = std::async(std::launch::async, [&mq]() {
         
@@ -112,13 +112,13 @@ int main(int argc, char **argv) {
         order_with_contract.place() ;
         std::stringstream ss;
         boost::archive::text_oarchive oarch(ss);
-        order_with_contract.serialize(oarch) ;
+        oarch << order_with_contract;
         std::string wire_order(ss.str()) ;
         while(true) {
 //            book.place_order(contract, order) ;
             //Fill up the boost ipc message queue
             mq.send(wire_order.data(), wire_order.size(), 0) ; //priority 0
-            std::cout << "placing order to queue=" << wire_order << std::endl ;
+            std::cout << "placing order to queue=[" << wire_order << "]" << std::endl ;
             std::this_thread::sleep_for(std::chrono::seconds(2)) ;
         }
     });
@@ -128,7 +128,7 @@ int main(int argc, char **argv) {
 }
  
 
-OrderContract  fetch_order() 
+boost::optional<OrderContract>  fetch_order() 
 {
     using namespace boost::interprocess;
     OrderContract order;
@@ -139,22 +139,32 @@ OrderContract  fetch_order()
         message_queue::size_type recvd_size;
         char buf[1024] ;
         
-        mq.receive(&buf[0], sizeof(buf), recvd_size, priority) ;
+        //100 milliseconds timeout
+        boost::posix_time::time_duration delay(boost::posix_time::millisec(100));
+        // current time
+        boost::posix_time::ptime timeout =
+        boost::posix_time::ptime(boost::posix_time::second_clock::local_time());
+        timeout += delay;
+        if ( !mq.timed_receive(&buf[0], sizeof(buf), recvd_size, priority, timeout) ) {
+            return boost::optional<OrderContract>() ;
+        }
         
         if (recvd_size > sizeof (buf)) {
             std::string err = std::string("boost::interpcess::mq::receive size exceeds expected max of ") + 
             boost::lexical_cast<std::string>(sizeof(buf)) + " bytes" ; 
             throw std::runtime_error(err);
         }
-        std::cout << "draining order = " << std::string(buf,recvd_size) << std::endl ;
+        std::string s(buf,recvd_size) ;
+        std::cout << "draining order = [" << s <<  "]" << std::endl ;
         std::stringstream ss (std::string(buf,recvd_size));
         boost::archive::text_iarchive iarch(ss);
         iarch >> order; //de-serialize
+        std::cout << "de-serialized order = [" << order.account << "]" << std::endl ;
     } catch(const interprocess_exception &ex){
        throw ;
     } catch (const std::exception & e) {
        throw ;
     }
     
-    return order;
+    return boost::optional<OrderContract>(order);
 }
