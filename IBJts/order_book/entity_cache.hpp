@@ -29,11 +29,8 @@
 #include <boost/interprocess/sync/sharable_lock.hpp>
 #include <boost/scoped_ptr.hpp>
 #include <boost/tuple/tuple.hpp>
-#if defined(USES_LOG4CPP)
-#include <log4cpp/Category.hh>
-#else
-#include <iostream>
-#endif
+#include <boost/log/core.hpp>
+#include <boost/log/trivial.hpp>
 #include <memory>
  
 #include <boost/version.hpp>
@@ -52,7 +49,9 @@ std::string demangle(const char* name) {
 } 
 }}
 #endif
-   
+
+#define LOG(x) BOOST_LOG_TRIVIAL(x)
+
 namespace {
     namespace bip = boost::interprocess ;
 }
@@ -87,34 +86,43 @@ _container_ptr = _segment_ptr->template find_or_construct<Container_t>( _cache_n
         _container_ptr->clear() ;
     }
    
+    template<typename Tag, typename Serializable, typename Arg>
+    bool update( const Serializable &data, Arg&& arg) {
+        bip::scoped_lock<bip::named_upgradable_mutex> guard(_named_mutex) ;
+        bool is_success {false};
+        auto &index = _container_ptr->template get<Tag>();
+        auto p = index.equal_range(std::forward<Arg>(arg));      
+        while ( p.first != p.second ) {
+            try {
+              is_success |= update_data(data,index,p.first++);
+            } catch (const bad_alloc_exception_t &e) {
+              LOG(debug) << boost::core::demangle(typeid(*this).name())
+              << " data was not updated , MEMORY AVAILABLE="
+              <<  _segment_ptr->get_free_memory() ;
+              grow_memory(MEMORY_SIZE);
+              is_success |= update_data(data,index,p.first++);
+            }
+        }
+        return is_success;
+    }
+ 
     template<typename Tag, typename Serializable, typename ...Args>
     bool update( const Serializable &data, Args&& ...args) {
         bip::scoped_lock<bip::named_upgradable_mutex> guard(_named_mutex) ;
         bool is_success {false};
         auto &index = _container_ptr->template get<Tag>();
         auto p = index.equal_range(boost::make_tuple(std::forward<Args>(args)...));
-        std::for_each( p.first, p.second, [this,&is_success,&data,&index](Data_t &entry) {
+         while ( p.first != p.second ) {
             try {
-              is_success |= update_data(data,index,&entry);
+              is_success |= update_data(data,index,p.first++);
             } catch (const bad_alloc_exception_t &e) {
-#if defined(USES_LOG4CPP)
-              log4cpp::Category::getRoot() <<  log4cpp::Priority::INFO
-#else
-              std::cout  
-#endif
-              << boost::core::demangle(typeid(*this).name())
+              LOG(debug) << boost::core::demangle(typeid(*this).name())
               << " data was not updated , MEMORY AVAILABLE="
-              <<  _segment_ptr->get_free_memory() << 
-#if defined(USES_LOG4CPP)
-              log4cpp::eol ;
-              log4cpp::Category::getRoot().errorStream().flush() ;
-#else
-              std::endl;
-#endif
+              <<  _segment_ptr->get_free_memory() ;
               grow_memory(MEMORY_SIZE);
-              is_success |= update_data(data,index,&entry);
+              is_success |= update_data(data,index,p.first++);
             }
-        });
+        }
         return is_success;
     }
  
@@ -125,20 +133,9 @@ _container_ptr = _segment_ptr->template find_or_construct<Container_t>( _cache_n
         try {
             is_success = insert_data(data);
         } catch (const bad_alloc_exception_t &e) {
-#if defined(USES_LOG4CPP)
-            log4cpp::Category::getRoot() <<  log4cpp::Priority::INFO
-#else
-            std::cout 
-#endif
-            << boost::core::demangle(typeid(*this).name())
+            LOG(debug) << boost::core::demangle(typeid(*this).name())
             << " data was not inserted , MEMORY AVAILABLE="
-            <<  _segment_ptr->get_free_memory() << 
-#if defined(USES_LOG4CPP)
-            log4cpp::eol ;
-            log4cpp::Category::getRoot().errorStream().flush() ;
-#else
-            std::endl;
-#endif
+            <<  _segment_ptr->get_free_memory(); 
             grow_memory(MEMORY_SIZE);
             is_success = insert_data(data);
         }
@@ -155,20 +152,9 @@ _container_ptr = _segment_ptr->template find_or_construct<Container_t>( _cache_n
             try {
                 if ( insert_data(data) ) { --n; }
             } catch (const bad_alloc_exception_t &e) {
-#if defined(USES_LOG4CPP)
-                log4cpp::Category::getRoot() <<  log4cpp::Priority::INFO
-#else
-                std::cout
-#endif
-                << boost::core::demangle(typeid(*this).name())
+                LOG(debug) << boost::core::demangle(typeid(*this).name())
                 << " data was not inserted , MEMORY AVAILABLE="
-                <<  _segment_ptr->get_free_memory() << 
-#if defined(USES_LOG4CPP)
-                log4cpp::eol ;
-                log4cpp::Category::getRoot().errorStream().flush() ;
-#else
-                std::endl;
-#endif                
+                <<  _segment_ptr->get_free_memory(); 
                 grow_memory(MEMORY_SIZE);
                 if ( insert_data(data) ) { --n; }
             }
@@ -228,19 +214,8 @@ private:
           _segment_ptr.reset() ;
           segment_t::grow(_store_name.c_str(), size) ;
         } catch ( const  bad_alloc_exception_t &e ) {
-#if defined(USES_LOG4CPP)
-            log4cpp::Category::getRoot() <<  log4cpp::Priority::ERROR
-#else
-            std::cout
-#endif
-            << boost::core::demangle(typeid(*this).name())       
-            << " failed to grow " << e.what() << ":free mem=" << _segment_ptr->get_free_memory()<<
-#if defined(USES_LOG4CPP)
-            log4cpp::eol;
-            log4cpp::Category::getRoot().errorStream().flush() ;
-#else
-            std::endl;
-#endif
+            LOG(debug) << boost::core::demangle(typeid(*this).name())       
+            << " failed to grow " << e.what() << ":free mem=" << _segment_ptr->get_free_memory() ;
         }
         attach() ; // reattach to newly created
     }
@@ -254,11 +229,11 @@ private:
     }
  
     template<typename Serializable, typename Index, typename Iterator>
-    void update_data(const  Serializable &data, Index &index, Iterator itr) {
+    bool update_data(const  Serializable &data, Index &index, Iterator itr) {
         attach();
         Data_t item(_segment_ptr->get_segment_manager());
         item.store(data);
-        index.modify(itr,item) ;
+        return index.modify(itr,item) ;
     }
  
     boost::scoped_ptr<segment_t> _segment_ptr;

@@ -109,8 +109,12 @@ namespace ipc { namespace data {
         }
         //needed for ability to update after matching by calling index.modify(itr,entry)
         void operator()(order_entity &entry) const {
-            entry=*this;
-        }  
+            entry.account=account;
+            entry.ticker=ticker;
+            entry.order_id=order_id;
+            entry.order_status=order_status;
+            entry.blob=blob;
+        }
     } ;
    
  

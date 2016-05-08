@@ -39,6 +39,7 @@ using interactive::OrderContract;
 using namespace boost::interprocess;
  
 boost::optional<OrderContract>  fetch_order() ;
+extern void init_framework_logging(const std::string&);
 
 int main(int argc, char **argv) {
        
@@ -68,10 +69,8 @@ int main(int argc, char **argv) {
         std::clog << desc << std::endl;
         return 0;
     }
-    
-    /*
-     * Code below will go on the client side GUI and will dubmit orders via boost IPC queue
-     */
+   
+    init_framework_logging("/tmp/order_book") ;
     
     //Erase previous message queue
     if (!message_queue::remove(constant::ORDER_QUEUE_NAME.c_str())) {
@@ -92,7 +91,13 @@ int main(int argc, char **argv) {
     });
     
     book.connect(host,port) ; //will start a single thread dispatcher inside the book
-    std::cout << "start populating queue" << constant::ORDER_QUEUE_NAME << std::endl ;
+
+
+
+    /*
+     * Code below will go on the client side GUI and will dubmit orders via boost IPC queue
+     */
+    LOG(info) << "start populating queue" << constant::ORDER_QUEUE_NAME ;
     //read from queue and push orders into book
     std::future<void> order_client = std::async(std::launch::async, [&mq]() {
         
@@ -114,12 +119,10 @@ int main(int argc, char **argv) {
         boost::archive::text_oarchive oarch(ss);
         oarch << order_with_contract;
         std::string wire_order(ss.str()) ;
+        mq.send(wire_order.data(), wire_order.size(), 0) ; //priority 0
+        LOG(info) << "placing order to queue=[" << wire_order << "]" ;
         while(true) {
-//            book.place_order(contract, order) ;
-            //Fill up the boost ipc message queue
-            mq.send(wire_order.data(), wire_order.size(), 0) ; //priority 0
-            std::cout << "placing order to queue=[" << wire_order << "]" << std::endl ;
-            std::this_thread::sleep_for(std::chrono::seconds(2)) ;
+            std::this_thread::sleep_for(std::chrono::seconds(5));
         }
     });
     

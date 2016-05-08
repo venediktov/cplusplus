@@ -15,11 +15,17 @@ endif()
 
 find_package(
 	Boost
-	COMPONENTS program_options serialization system
+	COMPONENTS 
+        program_options 
+        serialization 
+        system 
+        log 
+        thread
 	)
 
 ADD_DEFINITIONS(
         -DIB_USE_STD_STRING
+        -DBOOST_LOG_DYN_LINK
 	-std=c++11 -g #-fno-elide-constructors # Or -std=c++0x
 	# Other flags
 	)
@@ -37,6 +43,7 @@ endif()
 
 add_executable(
 	order_book
+        logger.cpp
 	ordermgr.cpp
 	)
 

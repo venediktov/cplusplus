@@ -1,8 +1,20 @@
 /* 
  * File:   orderclient.hpp
- * Author: vlad1819
+ * Author: Vladimir Venediktov
+ * Copyright (c) 2016-2018 Venediktes Gruppe, LLC
  *
  * Created on May 1, 2016, 1:34 PM
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+*
  */
 
 #ifndef __INTERACTIVE_ORDER_BOOK_HPP__
@@ -18,7 +30,10 @@
 #include <list>
 #include <iostream>
 #include <boost/optional.hpp>
+#include <boost/log/core.hpp>
+#include <boost/log/trivial.hpp>
 
+#define LOG(x) BOOST_LOG_TRIVIAL(x)
 
 #include <boost/serialization/serialization.hpp>
 namespace boost {
@@ -51,15 +66,29 @@ void serialize(Archive & ar, Contract & contract, const unsigned int version)
 namespace interactive {
 
 struct OrderResponse {
-     IBString status;
-     int filled;
-     int remaining;
-     double avgFillPrice;
-     int permId;
-     int parentId;
-     double lastFillPrice;
-     int clientId; 
-     IBString whyHeld;
+    friend class boost::serialization::access;
+    template<class Archive>
+    void serialize(Archive & ar, const unsigned int version=0)
+    {
+        ar & status;
+        ar & filled;
+        ar & remaining;
+        ar & avgFillPrice;
+        ar & permId;
+        ar & parentId;
+        ar & lastFillPrice;
+        ar & clientId; 
+        ar & whyHeld;
+    }
+    IBString status{};
+    int filled{};
+    int remaining{};
+    double avgFillPrice{};
+    int permId{};
+    int parentId{};
+    double lastFillPrice{};
+    int clientId{}; 
+    IBString whyHeld{};
 };
 
 struct OrderContract 
@@ -83,7 +112,10 @@ struct OrderContract
         cmd = OrderInstruction::CANCEL;
     }
     void add_response(const OrderResponse & r) {
-        oresp = r;
+        response = r;
+    }
+    void assign_order(long next_order_id) {
+        order_id = order.orderId = next_order_id ;
     }
     
     template<class Archive>
@@ -92,6 +124,7 @@ struct OrderContract
         ar & cmd;
         ar & order;
         ar & contract;
+        ar & response;
         //below for de-serialization from Archive
         account  = order.account;
         ticker   = contract.symbol;
@@ -104,7 +137,7 @@ struct OrderContract
     std::string account{};
     std::string ticker{} ;
     long order_id{} ;
-    OrderResponse oresp{};    
+    OrderResponse response{};    
 };  
 
 
@@ -120,7 +153,7 @@ public:
     virtual ~OrderBook() {disconnect();}
     bool connect(const std::string &host, unsigned int port, int client_id = 0) {
          // trying to connect
-        std::cout << "OrderClient::connect connecting to " <<  host <<  ":" << port << " client_id=" << client_id << std::endl;
+        LOG(info) << "OrderClient::connect connecting to " <<  host <<  ":" << port << " client_id=" << client_id ;
         bool is_success = client_->eConnect( host.c_str(), port, client_id, /* extraAuth */ false);
         if (!is_success) {
              printf( "Cannot connect to %s:%d clientId:%d\n", host.c_str(), port, client_id);
@@ -142,15 +175,6 @@ public:
     bool isConnected() const {
 	return client_->isConnected();
     }
-    //template<typename Contract , typename Order>
-    //void place_order(const Contract &contract , const Order &order ) { //const {
-    //printf( "Storing Order : %s %ld %s at %f\n", order.action.c_str(), order.totalQuantity, contract.symbol.c_str(), order.lmtPrice);
-	//client_->placeOrder( next_order_ids_, contract, order);
-    // cache_.insert(OrderContact(order, contract)) ;
-    //}
-    //void cancel_order(OrderId order_id) {
-    //    client_->cancelOrder(order_id);
-    //}
     
 protected:    
     // events from EWrapper
@@ -184,7 +208,7 @@ protected:
         }
         auto valuep = orders.at(0) ;
         valuep->add_response(r) ;
-        //TODO: cache_.template update<Tag>(*valuep , orderId ) ;
+        cache_.template update<Tag>(*valuep , orderId ) ;
         std::cout << "TODO:  Order: id" << orderId << ", status=" << status ;
     }
     void openOrder(OrderId orderId, const Contract& contract, const Order& order, const OrderState& state) {
@@ -203,7 +227,7 @@ protected:
     void updateAccountTime(const IBString& timeStamp) {}
     void accountDownloadEnd(const IBString& accountName) {}
     void nextValidId(OrderId order_id) {
-        std::cout << "nextValidId=" << order_id << ", call back from API , forward to queue" << std::endl ;
+        LOG(info) << "nextValidId=" << order_id << ", call back from API , forward to queue" ;
 	next_order_ids_.push_back(order_id);
     }
     void contractDetails(int reqId, const ContractDetails& contractDetails) {}
@@ -212,7 +236,7 @@ protected:
     void execDetails(int reqId, const Contract& contract, const Execution& execution) {}
     void execDetailsEnd(int reqId) {}
     void error(const int id, const int errorCode, const IBString errorString) {
-        std::cerr << "Error id=" << id << " errorCode=" << errorCode << ", msg=" << errorString << std::endl;
+        LOG(error) << "Error id=" << id << " errorCode=" << errorCode << ", msg=" << errorString ;
 	if( id == -1 && errorCode == 1100) // if "Connectivity between IB and TWS has been lost"
 		disconnect();
     }
@@ -307,11 +331,10 @@ private:
 	
     }
     void dispatch_order() {
-        //using Tag = typename ipc::data::order_entity<Alloc>::status_account_tag ;
-        //should block not  block here see queue timeout
+        //should  not  block here see queue timeout
         auto opt = queue_() ;
         if ( !opt ) {
-            std::cout << "Queue is empty return!" << std::endl ;
+            LOG(debug) << "Queue is empty return!" ;
             return ;
         }
         OrderContract value = *opt ;
@@ -321,25 +344,22 @@ private:
         }
         OrderId next_order_id = next_order_ids_.front() ;
         next_order_ids_.pop_front() ;
-        //std::vector<OrderContact> orders;
-        //if ( !cache_.template retrieve<Tag>(orders,OrderStatus::CREATED) ) {
-        //    return;   
-        //}
-        //const auto &value = orders.at(0) ;
         printf( "Submitting Order %ld: %s %ld %s at %f\n", 
                 next_order_id, value.order.action.c_str(), 
                 value.order.totalQuantity, 
                 value.contract.symbol.c_str(), value.order.lmtPrice
         );
 	if ( value.cmd == OrderInstruction::PLACE) {
-            client_->placeOrder(next_order_id, value.contract, value.order);
+            value.assign_order(next_order_id) ;
+            if ( cache_.insert(value) ) {
+                client_->placeOrder(next_order_id, value.contract, value.order);
+            } else {
+              LOG(debug)  << "failed to insert order in cache:" << value.order_id;
+            }
         } else if (value.cmd == OrderInstruction::CANCEL) {
              client_->cancelOrder(value.order_id);
         }
-        if ( !cache_.insert(value) ) {
-            std::cout  << "failed to insert order in cache:" << std::endl;
-        }
-        
+           
     }
     std::unique_ptr<EPosixClientSocket> client_;
     std::future<void> dispatcher_ {};
