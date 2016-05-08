@@ -16,11 +16,8 @@
 #include <boost/interprocess/ipc/message_queue.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/lexical_cast.hpp>
-#include <boost/tuple/tuple.hpp>
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/archive/text_oarchive.hpp>
-#include <typeinfo>
-#include <boost/core/demangle.hpp>
 #include <future>
 #include <chrono>
 #include <boost/optional/optional.hpp>
