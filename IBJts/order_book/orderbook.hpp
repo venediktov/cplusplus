@@ -347,11 +347,10 @@ private:
         }
         OrderId next_order_id = next_order_ids_.front() ;
         next_order_ids_.pop_front() ;
-        printf( "Submitting Order %ld: %s %ld %s at %f\n", 
-                next_order_id, value.order.action.c_str(), 
-                value.order.totalQuantity, 
-                value.contract.symbol.c_str(), value.order.lmtPrice
-        );
+        LOG(debug) << "Submitting Order " 
+                   << next_order_id << ":" << value.order.action << " "
+                   << value.order.totalQuantity << " "
+                   << value.contract.symbol << "@" <<  value.order.lmtPrice ;
 	if ( value.cmd == OrderInstruction::PLACE) {
             value.assign_order(next_order_id) ;
             if ( cache_.insert(value) ) {
@@ -362,7 +361,10 @@ private:
         } else if (value.cmd == OrderInstruction::CANCEL) {
              client_->cancelOrder(value.order_id);
         }
-           
+
+        if ( next_order_ids_.empty()) {
+            client_->reqIds(1) ;
+        }
     }
     std::unique_ptr<EPosixClientSocket> client_;
     std::future<void> dispatcher_ {};
