@@ -52,9 +52,9 @@ int main(int argc, char **argv) {
     int reconnect_n;
     desc.add_options()
             ("help,h", "display help screen")
-            ("attempts,-N",  po::value<int>(&reconnect_n), "specify number of attempts to reconnect before giving up")
-            ("host,-H",  po::value<std::string>(&host) , "specify host")
-            ("port,-P",  po::value<int>(&port), "specify port numer");
+            ("attempts,N",  po::value<int>(&reconnect_n), "specify number of attempts to reconnect before giving up")
+            ("host,H",  po::value<std::string>(&host) , "specify host")
+            ("port,P",  po::value<int>(&port), "specify port numer");
  
     try {
         po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -91,43 +91,8 @@ int main(int argc, char **argv) {
     });
     
     book.connect(host,port) ; //will start a single thread dispatcher inside the book
+    book.run() ; // will wait for dispatcher thread to terminate 
 
-
-
-    /*
-     * Code below will go on the client side GUI and will dubmit orders via boost IPC queue
-     */
-    LOG(info) << "start populating queue" << constant::ORDER_QUEUE_NAME ;
-    //read from queue and push orders into book
-    std::future<void> order_client = std::async(std::launch::async, [&mq]() {
-        
-        Order order;
-        Contract contract;
-        contract.symbol = "IBM";
-	contract.secType = "STK";
-	contract.exchange = "ARCA" ; //SMART";
-	contract.currency = "USD";
- 
-        order.account = "DUC00074" ;
-	order.action = "BUY";
-	order.totalQuantity = 1000;
-	order.orderType = "LMT";
-	order.lmtPrice = 0.01;
-        OrderContract order_with_contract(order,contract) ;
-        order_with_contract.place() ;
-        std::stringstream ss;
-        boost::archive::text_oarchive oarch(ss);
-        oarch << order_with_contract;
-        std::string wire_order(ss.str()) ;
-        mq.send(wire_order.data(), wire_order.size(), 0) ; //priority 0
-        LOG(info) << "placing order to queue=[" << wire_order << "]" ;
-        while(true) {
-            std::this_thread::sleep_for(std::chrono::seconds(5));
-        }
-    });
-    
-    order_client.wait();
-   
 }
  
 

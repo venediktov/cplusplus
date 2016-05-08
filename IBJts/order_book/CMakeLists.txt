@@ -55,3 +55,16 @@ target_link_libraries(
         rt
 	)
 
+add_executable(
+       testclnt
+       testclnt.cpp
+	)
+
+target_link_libraries(
+	testclnt
+        ${TARGET_LINK_IBLIB_LFLAG}
+	${Boost_LIBRARIES}
+        pthread
+        rt
+	)
+

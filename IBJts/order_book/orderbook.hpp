@@ -169,6 +169,9 @@ public:
         printf("Connected to %s:%d clientId:%d\n", host.c_str(), port, client_id);
         return is_success;
     }
+    void run() {
+       dispatcher_.wait() ;
+    }
     void disconnect() const {
 	client_->eDisconnect();
     }
