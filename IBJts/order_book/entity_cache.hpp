@@ -201,15 +201,28 @@ _container_ptr = _segment_ptr->template find_or_construct<Container_t>( _cache_n
         });
         return !entries.empty();
     }
-   
+  
+   char_string create_ipc_key(const std::string &key)  const {
+       try {
+           char_string tmp(key.data(), key.size(), _segment_ptr->get_segment_manager()) ;
+           return tmp;
+       } catch ( const  bad_alloc_exception_t &e ) {
+           LOG(debug) << boost::core::demangle(typeid(*this).name())
+           << " create_ipc_key failed , MEMORY AVAILABLE="
+           <<  _segment_ptr->get_free_memory(); 
+           grow_memory(MEMORY_SIZE) ;
+           char_string tmp(key.data(), key.size(), _segment_ptr->get_segment_manager()) ;
+           return tmp;
+       }
+   }
 private:
-    void attach() {
+    void attach() const {
     _segment_ptr.reset(new segment_t(bip::open_only,_store_name.c_str()) ) ;
     _container_ptr = _segment_ptr->template find_or_construct<Container_t>(_cache_name.c_str())
         (typename Container_t::ctor_args_list(), typename Container_t::allocator_type(_segment_ptr->get_segment_manager()));
     }
  
-    void grow_memory(size_t size) {
+    void grow_memory(size_t size) const {
         try {
           _segment_ptr.reset() ;
           segment_t::grow(_store_name.c_str(), size) ;
@@ -236,8 +249,8 @@ private:
         return index.modify(itr,item) ;
     }
  
-    boost::scoped_ptr<segment_t> _segment_ptr;
-    Container_t  *_container_ptr ;
+    mutable boost::scoped_ptr<segment_t> _segment_ptr;
+    mutable Container_t  *_container_ptr ;
     std::string _store_name ;
     std::string _cache_name ;
     boost::interprocess::named_upgradable_mutex _named_mutex;
