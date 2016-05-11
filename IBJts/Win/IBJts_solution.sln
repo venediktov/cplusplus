@@ -6,15 +6,15 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OrderBook", "OrderBook\OrderBook.vcxproj", "{131453DE-32DD-44E9-BE97-EE367A7D91E4}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OrderBook_CLI", "OrderBook_CLI\OrderBook_CLI.vcxproj", "{05788E2C-B5C6-44D5-8DD9-F8E049E573B7}"
-	ProjectSection(ProjectDependencies) = postProject
-		{131453DE-32DD-44E9-BE97-EE367A7D91E4} = {131453DE-32DD-44E9-BE97-EE367A7D91E4}
-	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "InteractiveWinLib_Static", "InteractiveWinLib_Static\InteractveWinLib_Static.vcxproj", "{41A81A37-2B66-4656-BBEE-81F77BA48953}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "InteractiveWinLib_DLL", "InteractiveWinLib_DLL\InteractveWinLib_DLL.vcxproj", "{F0D5F096-C3D4-4EB6-8368-1E81F05DFC2A}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OrderBook_DLL", "OrderBook_DLL\OrderBook_DLL.vcxproj", "{A5544826-088D-4386-B18E-C8ACAA6124D0}"
+	ProjectSection(ProjectDependencies) = postProject
+		{F0D5F096-C3D4-4EB6-8368-1E81F05DFC2A} = {F0D5F096-C3D4-4EB6-8368-1E81F05DFC2A}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

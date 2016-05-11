@@ -92,12 +92,12 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions);%(PreprocessorDefinitions); BOOST_LIB_DIAGNOSTIC; IB_USE_STD_STRING</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>C:\boost\boost_1_60_0; ../../source/PosixClient/Shared; ../../source/PosixClient/src</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\boost\include\boost-1_60; ../../source/PosixClient/Shared; ../../source/PosixClient/src</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\boost\boost_1_60_0\stage\lib</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>C:\boost\lib</AdditionalLibraryDirectories>
     </Link>
     <ProjectReference>
       <LinkLibraryDependencies>true</LinkLibraryDependencies>

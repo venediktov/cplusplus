@@ -89,7 +89,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions);ORDERBOOK_DLL_EXPORTS;BOOST_ALL_DYN_LINK;BOOST_LIB_DIAGNOSTIC;IB_USE_STD_STRING</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>C:\boost\boost_1_60_0; ../../source/PosixClient/Shared; ../../source/PosixClient/src</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\boost\include\boost-1_60; ../../source/PosixClient/Shared; ../../source/PosixClient/src</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

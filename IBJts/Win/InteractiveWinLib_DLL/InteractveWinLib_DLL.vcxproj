@@ -80,7 +80,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions);IB_USE_STD_STRING</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>C:\Users\vvenedik\Source\Repos\cplusplus\IBJts\source\PosixClient\Shared</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\source\PosixClient\Shared</AdditionalIncludeDirectories>
       <ShowIncludes>true</ShowIncludes>
     </ClCompile>
     <Link>
