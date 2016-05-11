@@ -33,6 +33,10 @@
 #include <boost/log/core.hpp>
 #include <boost/log/trivial.hpp>
 
+#ifdef _WIN32
+#include <WinSock2.h>
+#endif
+
 #define LOG(x) BOOST_LOG_TRIVIAL(x)
 
 #include <boost/serialization/serialization.hpp>

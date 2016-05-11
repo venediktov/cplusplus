@@ -87,8 +87,9 @@ int main(int argc, char **argv) {
         return fetch_order() ;
     });
     
-    book.connect(host,port) ; //will start a single thread dispatcher inside the book
-    book.run() ; // will wait for dispatcher thread to terminate 
+	if (book.connect(host, port)) { //will start a single thread dispatcher inside the book
+		book.run(); // will wait for dispatcher thread to terminate 
+	}
 
 }
  
