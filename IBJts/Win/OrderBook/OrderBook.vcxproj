@@ -158,6 +158,7 @@
     <ClInclude Include="..\..\order_book\order_entity.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\order_book\logger.cpp" />
     <ClCompile Include="..\..\order_book\ordermgr.cpp" />
   </ItemGroup>
   <ItemGroup>
