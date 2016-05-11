@@ -50,6 +50,8 @@ private:
 
 } // end of namespace shared_ptr_defs
 
+
+#if __cplusplus < 199711L
 template<typename X> class shared_ptr {
 public:
 
@@ -91,5 +93,6 @@ private:
    X *ptr_;
    Use use_;
 };
+#endif
 
 #endif /* shared_ptr_h_INCLUDED */

@@ -24,6 +24,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
+#if defined(WIN32)
+#include <Winsock2.h>
+#endif
 
 /////////////////////////////////////////////////////////////////////////////////
 // SOCKET CLIENT VERSION CHANGE LOG : Incremented when the format of incomming
@@ -467,9 +470,11 @@ static IBString errMsg(std::exception e) {
 #ifdef _MSC_VER
 static IBString errMsg(CException *e) {
 	// return the error associated with this exception
-	char buf[1024];
+	//char buf[1024];
+	TCHAR buf[1024];
 	e->GetErrorMessage( buf, sizeof buf);
-	return IBString( buf);
+	std::wstring tmp(buf);
+	return IBString( (char *)tmp.c_str());
 }
 #endif
 

@@ -8,6 +8,7 @@
 
 #include <float.h>
 #include <limits.h>
+#include<memory>
 
 #define UNSET_DOUBLE DBL_MAX
 #define UNSET_INTEGER INT_MAX
@@ -36,7 +37,7 @@ struct OrderComboLeg
 	}
 };
 
-typedef shared_ptr<OrderComboLeg> OrderComboLegSPtr;
+typedef std::shared_ptr<OrderComboLeg> OrderComboLegSPtr;
 
 struct Order
 {
@@ -258,7 +259,7 @@ struct Order
 
 	// order combo legs
 	typedef std::vector<OrderComboLegSPtr> OrderComboLegList;
-	typedef shared_ptr<OrderComboLegList> OrderComboLegListSPtr;
+	typedef std::shared_ptr<OrderComboLegList> OrderComboLegListSPtr;
 
 	OrderComboLegListSPtr orderComboLegs;
 

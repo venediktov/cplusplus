@@ -5,6 +5,7 @@
 #define contract_def
 
 #include "TagValue.h"
+#include <memory>
 
 /*
 	SAME_POS    = open/close leg value is same as combo
@@ -63,7 +64,7 @@ struct UnderComp
 	double	price;
 };
 
-typedef shared_ptr<ComboLeg> ComboLegSPtr;
+typedef std::shared_ptr<ComboLeg> ComboLegSPtr;
 
 struct Contract
 {
@@ -97,7 +98,7 @@ struct Contract
 
 	// combo legs
 	typedef std::vector<ComboLegSPtr> ComboLegList;
-	typedef shared_ptr<ComboLegList> ComboLegListSPtr;
+	typedef  std::shared_ptr<ComboLegList> ComboLegListSPtr;
 
 	ComboLegListSPtr comboLegs;
 

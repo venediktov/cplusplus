@@ -8,8 +8,10 @@
 #ifdef _MSC_VER
 
 #define assert ASSERT
+#if __cplusplus < 199711L
 #define snprintf _snprintf
-
+#endif
+#define _AFXDLL
 #include <afxwin.h>
 
 #endif

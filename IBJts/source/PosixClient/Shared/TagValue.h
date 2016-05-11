@@ -19,10 +19,16 @@ struct TagValue
 	IBString tag;
 	IBString value;
 };
-
+#if __cplusplus < 199711L
 typedef shared_ptr<TagValue> TagValueSPtr;
 typedef std::vector<TagValueSPtr> TagValueList;
 typedef shared_ptr<TagValueList> TagValueListSPtr;
+#else
+#include <memory>
+typedef std::shared_ptr<TagValue> TagValueSPtr;
+typedef std::vector<TagValueSPtr> TagValueList;
+typedef std::shared_ptr<TagValueList> TagValueListSPtr;
+#endif
 
 #endif
 
