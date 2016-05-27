@@ -2,7 +2,8 @@
 
 #pragma once
 #pragma managed(push, off)
-#include <interactive.hpp>
+#include "interactive.hpp"
+#include "OrderBook_DLL.h"
 #include <string>
 #pragma managed(pop)
 #include <msclr\marshal_cppstd.h>

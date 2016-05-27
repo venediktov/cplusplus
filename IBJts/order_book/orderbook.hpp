@@ -22,6 +22,7 @@
 
 #include "order_entity.hpp"
 #include "entity_cache.hpp"
+#include "interactive.hpp"
 #include <EWrapper.h>
 #include <EPosixClientSocket.h>
 #include <memory>
@@ -39,111 +40,7 @@
 
 #define LOG(x) BOOST_LOG_TRIVIAL(x)
 
-#include <boost/serialization/serialization.hpp>
-namespace boost {
-namespace serialization {
-
-template<class Archive>
-void serialize(Archive & ar, Order & order, const unsigned int version)
-{
-    ar & order.account;
-    ar & order.action;
-    ar & order.totalQuantity;
-    ar & order.orderType;
-    ar & order.lmtPrice;
-    ar & order.clientId;
-}
-
-template<class Archive>
-void serialize(Archive & ar, Contract & contract, const unsigned int version)
-{
-    ar & contract.symbol;
-    ar & contract.secType;
-    ar & contract.exchange;
-    ar & contract.currency;
-}
-
-
-} // namespace serialization
-} // namespace boost
-
 namespace interactive {
-
-struct OrderResponse {
-    friend class boost::serialization::access;
-    template<class Archive>
-    void serialize(Archive & ar, const unsigned int version=0)
-    {
-        ar & status;
-        ar & filled;
-        ar & remaining;
-        ar & avgFillPrice;
-        ar & permId;
-        ar & parentId;
-        ar & lastFillPrice;
-        ar & clientId; 
-        ar & whyHeld;
-    }
-    IBString status{};
-    int filled{};
-    int remaining{};
-    double avgFillPrice{};
-    int permId{};
-    int parentId{};
-    double lastFillPrice{};
-    int clientId{}; 
-    IBString whyHeld{};
-};
-
-struct OrderContract 
-{
-    friend class boost::serialization::access;
-    
-    OrderContract() {}
-    
-    OrderContract(const Order &o , const Contract &c) : OrderContract() {
-        order = o;
-        contract = c ; 
-        account  = order.account;
-        ticker   = contract.symbol;
-        order_id = order.orderId ;
-    }
-    
-    void place() { 
-        cmd = OrderInstruction::PLACE;
-    }
-    void cancel() {
-        cmd = OrderInstruction::CANCEL;
-    }
-    void add_response(const OrderResponse & r) {
-        response = r;
-    }
-    void assign_order(long next_order_id) {
-        order_id = order.orderId = next_order_id ;
-    }
-    
-    template<class Archive>
-    void serialize(Archive & ar, const unsigned int version=0)
-    {
-        ar & cmd;
-        ar & order;
-        ar & contract;
-        ar & response;
-        //below for de-serialization from Archive
-        account  = order.account;
-        ticker   = contract.symbol;
-        order_id = order.orderId ;
-    }
-    
-    OrderInstruction cmd{OrderInstruction::UNDEFINED};
-    Order order{} ;
-    Contract contract{};
-    std::string account{};
-    std::string ticker{} ;
-    long order_id{} ;
-    OrderResponse response{};    
-};  
-
 
 template<typename Memory>
 class OrderBook : protected EWrapper {

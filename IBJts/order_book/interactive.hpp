@@ -152,20 +152,5 @@ struct INTERACTIVE_DLL_EXPORTS OrderContract
     OrderResponse response{};    
 };      
 		
-class INTERACTIVE_DLL_EXPORTS OrderBookCache {
-public:
-    using collection_t = std::vector<std::shared_ptr<OrderContract>>;
-    OrderBookCache(const std::string &name) : cache_name_(name) {}
-    std::vector<std::shared_ptr<OrderContract>> GetTest() {
-            auto p = std::make_shared<OrderContract>(OrderContract());
-            std::vector<std::shared_ptr<OrderContract>> v{ p };
-            return v;
-    }
-    collection_t  GetEntries();
-    collection_t  GetEntriesByAccount(const std::string &account);
-private:
-    std::string cache_name_;
-};
 }
 #endif
-

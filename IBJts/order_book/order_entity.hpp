@@ -19,6 +19,7 @@
 #ifndef __IPC_DATA_ORDER_ENTITY_HPP__
 #define __IPC_DATA_ORDER_ENTITY_HPP__
  
+#include "interactive.hpp"
 #include <string>
 #include <sstream>
 #include <boost/tuple/tuple.hpp>
@@ -30,31 +31,13 @@
 #include <boost/multi_index/composite_key.hpp>
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
- 
-//todo: place it into separate file
- 
-enum class OrderInstruction : std::int8_t {
-    PLACE       = 1,
-    CANCEL      = 0,
-    UNDEFINED   = -1
-};
-
-enum class OrderStatus : std::int8_t {
-    CREATED       = 0,
-    SUBMITTED     = 1,
-    PENDING       = 2,
-    FILLED        = 3,
-    PARTIAL_FILL  = 4,
-    ERROR         = 5
-};
- 
- 
+  
 namespace ipc { namespace data {
     
     template < typename Alloc>
     struct order_entity
     {
-        typedef boost::interprocess::basic_string<char, std::char_traits<char>, Alloc>   char_string;
+        using char_string =  boost::interprocess::basic_string<char, std::char_traits<char>, Alloc> ;
       
         //for tagging in multi_index_container
         struct account_ticker_tag {}; // search on account+ticker or account
@@ -66,7 +49,7 @@ namespace ipc { namespace data {
         account(a),
         ticker(a),
         order_id(),
-        order_status(OrderStatus::CREATED),// this is for search of orders by status
+        order_status(interactive::OrderStatus::CREATED),// this is for search of orders by status
         blob(a)
         {} //ctor END
        
@@ -74,7 +57,7 @@ namespace ipc { namespace data {
         char_string account;
         char_string ticker;
         long order_id;
-        OrderStatus order_status;
+        interactive::OrderStatus order_status;
         char_string blob;
  
         template<typename Serializable>
@@ -140,7 +123,7 @@ boost::multi_index_container<
             boost::multi_index::tag<typename order_entity<Alloc>::status_account_tag>,
             boost::multi_index::composite_key<
                 order_entity<Alloc>,
-                BOOST_MULTI_INDEX_MEMBER(order_entity<Alloc>,OrderStatus,order_status),
+                BOOST_MULTI_INDEX_MEMBER(order_entity<Alloc>,interactive::OrderStatus,order_status),
                 BOOST_MULTI_INDEX_MEMBER(order_entity<Alloc>,typename order_entity<Alloc>::char_string,account)
             >
         >
