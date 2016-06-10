@@ -95,10 +95,10 @@ namespace openrtb {
 
         int w{};                     ///< Width of ad
         int h{};                     ///< Height of ad
-        int wmax{};                  ///< max width of ad (OpenRTB 2.3)
-        int hmax{};                  ///< max height of ad (OpenRTB 2.3)
-        int wmin{};                  ///< min width of ad (OpenRTB 2.3)
-        int hmin{};                  ///< min height of ad (OpenRTB 2.3)
+        boost::optional<int> wmax;                  ///< max width of ad (OpenRTB 2.3)
+        boost::optional<int> hmax;                  ///< max height of ad (OpenRTB 2.3)
+        boost::optional<int> wmin;                  ///< min width of ad (OpenRTB 2.3)
+        boost::optional<int> hmin;                  ///< min height of ad (OpenRTB 2.3)
         std::string id;                           ///< Ad ID
         AdPosition pos;                  ///< Ad position (table 6.5)
         std::vector<BannerAdType> btype;        ///< Blocked creative types (table 6.2)
