@@ -37,16 +37,38 @@
    std::string("file:")+boost::lexical_cast<std::string>(line)+": failed assertion "+e))
 
 struct side_counter {
-    std::size_t top=0;
-    std::size_t bottom=0;
-    std::size_t left=0;
-    std::size_t right=0;
+    std::size_t top{};
+    std::size_t bottom{};
+    std::size_t left{};
+    std::size_t right{};
+    
+    side_counter() {}
+    side_counter(std::size_t value) : top{value},bottom{value},left{value},right{value} {}
+    side_counter(std::size_t t, std::size_t b, std::size_t l, std::size_t r) : top{t},bottom{b},left{l},right{r} {}
+    
     bool is_sector_enclosed() {
-        return std::min(std::min(top,bottom), std::min(left,right)) ;
+        return top == bottom and left == right ;
     }
-    void reset() {
-        top=0,bottom=0,left=0,right=0;
+
+    void operator= (std::size_t value) {
+        top=value,bottom=value,left=value,right=value;
     }
+    void operator+= (const side_counter &other) {
+        top    += other.top;
+        bottom += other.bottom;
+        left   += other.left ;
+        right  += other.right;
+    }
+    void operator-= (const side_counter &other) {
+        top    -= other.top;
+        bottom -= other.bottom;
+        left   -= other.left ;
+        right  -= other.right;
+    }
+    side_counter min() {
+        return side_counter(std::min(std::min(top,bottom), std::min(left,right))) ;
+    }
+
     friend std::ostream & operator<<(std::ostream &os, const side_counter &other) {
         std::clog << "top=" << other.top << ",bottom=" << other.bottom << ",left=" << other.left << ",right=" << other.right;
     }
@@ -69,21 +91,24 @@ struct matrix {
             for (std::size_t n = 1; n < N - 1; ++n) {
                 auto value = impl_.at(m).at(n);
                 if (!value) {
-                    //std::clog << "m=" << m << ",n=" << n << " counter {" << counter_ << "}" << std::endl;
-                    int left = impl_.at(m).at(n - 1) ;
-                    int right = impl_.at(m).at(n + 1) ;
-                    int top = impl_.at(m - 1).at(n) ;
-                    int bottom = impl_.at(m + 1).at(n) ;
-                    //std::clog << "l=" << left << ",r=" << right << ",b=" << bottom << ",t" << top << std::endl;
-                    counter_.left   += left   ? 1 : 0;
-                    counter_.right  += right  ? 1 : 0;
-                    counter_.top    += top    ? 1 : 0;
-                    counter_.bottom += bottom ? 1 : 0;
-                    //std::clog <<  "counter {" << counter_ << "}" << std::endl;
-                    if ( counter_.is_sector_enclosed() ) {
-                        ++total_count ;
-                        counter_.reset() ;
+                    std::clog << "m=" << m << ",n=" << n << " counter {"<< counter_<< "}" << std::endl;
+                    T left = impl_.at(m).at(n - 1) ;
+                    T right = impl_.at(m).at(n + 1) ;
+                    T top = impl_.at(m - 1).at(n) ;
+                    T bottom = impl_.at(m + 1).at(n) ;
+                    std::clog << "l=" << left << ",r=" << right << ",b=" << bottom << ",t=" << top << std::endl;
+                    side_counter current_counter((top?1:0),(bottom?1:0),(left?1:0),(right?1:0)) ;
+                    std::clog <<  "current_counter { " << current_counter << "} ,counter_ {" << counter_ << "}" << std::endl;
+                    if ( current_counter.is_sector_enclosed() ) {
                         ++n; //optimization to skip non-zero to the right
+                        ++total_count;
+                        std::clog << "total_count=" << total_count << std::endl;
+                    } else {
+                        counter_  += current_counter ;
+                        if ( counter_.is_sector_enclosed()) {
+                            ++total_count ;
+                        }
+                        std::clog <<  "current_counter { " << current_counter << "} ,counter_ {" << counter_ << "}" << std::endl;
                     }
                 }
             }
@@ -96,7 +121,7 @@ struct matrix {
 int main(int argc, char** argv) {
  
     
-    std::array<std::array<int, 5>, 5>  puddles_3 = {{
+    std::array<std::array<int, 5>, 5>  puddles_3_3 = {{
         {0,12,0,0,18},
         {21,0,15,28,0},
         {0,27,0, 0,30},
@@ -104,10 +129,10 @@ int main(int argc, char** argv) {
         {0,70,0, 80,0}
     }};
     
-    matrix<int,5,5> test1(puddles_3) ;
+    matrix<int,5,5> test1(puddles_3_3) ;
     
     
-    std::array<std::array<int, 5>, 5>  puddles_2 = {{
+    std::array<std::array<int, 5>, 5>  puddles_2_2 = {{
         {0,12,0,0,18},
         {21,0,15,28,0},
         {0,27,0, 0,30},
@@ -115,15 +140,29 @@ int main(int argc, char** argv) {
         {0,70,0, 80,0}
     }};
 
-    matrix<int,5,5> test2(puddles_2) ;
-
+    matrix<int,5,5> test2(puddles_2_2) ;
+    
+    //TEST Case fails bad algo !!!!!
+     std::array<std::array<int, 5>, 5>  puddles_3_2 = {{
+        {0,12,0,0,18},
+        {21,0,15,28,0},
+        {0,27,0, 0,30},
+        {40,0,50,0,60},        
+        {0, 0, 0, 80,0} //open  on cell in the bottom to exclude 
+    }};
+    
+    matrix<int,5,5> test3(puddles_3_2) ;
+    
     try {
         assert_(3 == test1.count_encircled_chunks());
         assert_(2 == test2.count_encircled_chunks());
+        assert_(2 == test3.count_encircled_chunks());
         std::clog << "TEST1 passed found " << test1.count_encircled_chunks() << " encircled chunks aka puddles from the test" << std::endl;
         std::clog << "TEST2 passed found " << test2.count_encircled_chunks() << " encircled chunks aka puddles from the test" << std::endl;
+        std::clog << "TEST3 passed found " << test3.count_encircled_chunks() << " encircled chunks aka puddles from the test" << std::endl;
+
     } catch (const std::exception &e) {
-        std::clog << "One of the test cases failed " << e.what() << std::endl;
+        std::clog << "One of the test cases failed broken ALGO " << e.what() << std::endl;
     }
     
     return 0;
