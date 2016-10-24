@@ -76,7 +76,7 @@ struct side_counter {
     side_counter(std::size_t t, std::size_t b, std::size_t l, std::size_t r) : top{t},bottom{b},left{l},right{r} {}
     
     bool is_sector_enclosed() {
-        return top == bottom and left == right ;
+        return top == bottom && left == right ;
     }
 
     void operator= (std::size_t value) {
