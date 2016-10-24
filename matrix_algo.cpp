@@ -16,13 +16,41 @@
  *  to test the edges of the matix becasue the water escapes on the edges.
  *  Main algo :
  *  When side_counter identifies that area is encircled by calling 
- *  is_sector_enclosed , then matrix algo resets the side_counter to all zeros and
- *  increments total_count .
- * 
+ *  is_sector_enclosed , then matrix  increments total_count.
+ *  Last addition: the counters are stored as std::shared_ptr and are actually 
+ *  shared for each incomplete on the first pass puddle , when more iterations
+ *  is needed.
+ *  Memory overhead: one std::shared_ptr per puddle
+ *
  *  Improvements:
- *  for algo potimization it's possible to skip to n+1 when detecting is_sector_enclosed 
+ *  for algo optimization it's possible to skip to n+1 when detecting is_sector_enclosed 
  *  as it's obviouse the next n+1 is not equal to zero see comment in the code @see optimization
- * 
+ *
+ *  @TODO: Further code improvements if this algo really works:
+ *  1. use one internal matric_impl<std::pair<T,side_counter>,M,N> combining value and counters
+ *  thus avoiding extra code like conter_matrix_.at(m).at(n) and calling this way
+ *
+ *   std::size_t count_encircled_chunks()
+ *   {
+ *       std::size_t total_count{};
+ *       for (std::size_t m = 1; m < M - 1; ++m) {
+ *           for (std::size_t n = 1; n < N - 1; ++n) {
+ *               auto value = impl_.at(m).at(n); //will hold both T and side_counter
+ *               if (!value) {                
+ *                   auto left = impl_.at(m).at(n - 1).first?1:0 ;
+ *                   auto right = impl_.at(m).at(n + 1).first?1:0 ;
+ *                   auto top = impl_.at(m - 1).at(n).first?1:0 ;
+ *                   auto bottom = impl_.at(m + 1).at(n).first?1:0 ;                   
+ *                   side_counter current_counter(top,bottom,left,right) ;
+ *                   if ( current_counter.is_sector_enclosed() ) {
+ *                       ++n; //optimization to skip non-zero to the right
+ *                       ++total_count;
+ *                   } else if ( get_assign_counter(value,current_counter)->is_sector_enclosed()) {
+ *                       ++total_count ;
+ *                   }                  
+ *               }
+ *           }
+ *       }
  *  
  */
 
@@ -77,12 +105,12 @@ struct matrix {
     
     matrix(const matrix_impl<T,N,M> &impl)  : impl_(impl) {}
         
-    int count_encircled_chunks()
+    std::size_t count_encircled_chunks()
     {
-        std::size_t total_count = 0;
+        std::size_t total_count{};
         for (std::size_t m = 1; m < M - 1; ++m) {
             for (std::size_t n = 1; n < N - 1; ++n) {
-                auto value = impl_.at(m).at(n);
+                T value = impl_.at(m).at(n);
                 if (!value) {                
                     T left = impl_.at(m).at(n - 1) ;
                     T right = impl_.at(m).at(n + 1) ;
@@ -100,7 +128,8 @@ struct matrix {
         }
         return  total_count;
     }
-    
+
+private:    
     side_counter_ptr get_assign_counter ( std::size_t m , std::size_t n, const side_counter &counter) {
         auto assign_update = [](side_counter_ptr &ptr, side_counter_ptr &this_ptr){
             if ( !ptr ) {
