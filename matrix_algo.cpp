@@ -90,7 +90,8 @@ struct side_counter {
     }
 
     friend std::ostream & operator<<(std::ostream &os, const side_counter &other) {
-        std::clog << "top=" << other.top << ",bottom=" << other.bottom << ",left=" << other.left << ",right=" << other.right;
+        os << "top=" << other.top << ",bottom=" << other.bottom << ",left=" << other.left << ",right=" << other.right;
+        return os;
     }
 };
 
