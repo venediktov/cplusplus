@@ -31,6 +31,7 @@
 #include <iostream>
 #include <boost/lexical_cast.hpp>
 #include <stdexcept>
+#include <memory>
 
 #define assert_(e) ((void) ((e) ? 0 : my_assert (#e, __FILE__, __LINE__)))
 #define my_assert( e, file, line ) ( throw std::runtime_error(\
@@ -59,15 +60,6 @@ struct side_counter {
         left   += other.left ;
         right  += other.right;
     }
-    void operator-= (const side_counter &other) {
-        top    -= other.top;
-        bottom -= other.bottom;
-        left   -= other.left ;
-        right  -= other.right;
-    }
-    side_counter min() {
-        return side_counter(std::min(std::min(top,bottom), std::min(left,right))) ;
-    }
 
     friend std::ostream & operator<<(std::ostream &os, const side_counter &other) {
         std::clog << "top=" << other.top << ",bottom=" << other.bottom << ",left=" << other.left << ",right=" << other.right;
@@ -78,9 +70,10 @@ struct side_counter {
 template<typename T, std::size_t N , std::size_t M>
 struct matrix {
     template <typename TT, std::size_t ROW, std::size_t COL>
-    using matrix_impl = std::array<std::array<T, COL>, ROW>;
+    using matrix_impl = std::array<std::array<TT, COL>, ROW>;
     matrix_impl<T,N,M> impl_;
-    side_counter counter_ ;
+    using side_counter_ptr = std::shared_ptr<side_counter> ;
+    matrix_impl<side_counter_ptr,N,M> counter_matrix_ ;
     
     matrix(const matrix_impl<T,N,M> &impl)  : impl_(impl) {}
         
@@ -90,30 +83,62 @@ struct matrix {
         for (std::size_t m = 1; m < M - 1; ++m) {
             for (std::size_t n = 1; n < N - 1; ++n) {
                 auto value = impl_.at(m).at(n);
-                if (!value) {
-                    std::clog << "m=" << m << ",n=" << n << " counter {"<< counter_<< "}" << std::endl;
+                if (!value) {                
                     T left = impl_.at(m).at(n - 1) ;
                     T right = impl_.at(m).at(n + 1) ;
                     T top = impl_.at(m - 1).at(n) ;
-                    T bottom = impl_.at(m + 1).at(n) ;
-                    std::clog << "l=" << left << ",r=" << right << ",b=" << bottom << ",t=" << top << std::endl;
+                    T bottom = impl_.at(m + 1).at(n) ;                   
                     side_counter current_counter((top?1:0),(bottom?1:0),(left?1:0),(right?1:0)) ;
-                    std::clog <<  "current_counter { " << current_counter << "} ,counter_ {" << counter_ << "}" << std::endl;
                     if ( current_counter.is_sector_enclosed() ) {
                         ++n; //optimization to skip non-zero to the right
                         ++total_count;
-                        std::clog << "total_count=" << total_count << std::endl;
-                    } else {
-                        counter_  += current_counter ;
-                        if ( counter_.is_sector_enclosed()) {
-                            ++total_count ;
-                        }
-                        std::clog <<  "current_counter { " << current_counter << "} ,counter_ {" << counter_ << "}" << std::endl;
-                    }
+                    } else if ( get_assign_counter(m,n,current_counter)->is_sector_enclosed()) {
+                        ++total_count ;
+                    }                  
                 }
             }
         }
         return  total_count;
+    }
+    
+    side_counter_ptr get_assign_counter ( std::size_t m , std::size_t n, const side_counter &counter) {
+        auto assign_update = [](side_counter_ptr &ptr, side_counter_ptr &this_ptr){
+            if ( !ptr ) {
+                ptr = this_ptr;
+            } else if ( ptr != this_ptr ) {
+                *this_ptr += *ptr;
+                ptr = this_ptr;
+            }
+            return;
+        };
+        
+        side_counter_ptr &this_ptr = counter_matrix_.at(m).at(n) ;
+        if ( !this_ptr ) {
+            this_ptr.reset(new side_counter) ;
+        }
+        *this_ptr += counter;
+        
+        if ( !counter.bottom ) {
+            side_counter_ptr &bottom_ptr = counter_matrix_.at(m + 1).at(n);
+            assign_update(bottom_ptr,this_ptr) ;
+        }
+        
+        if ( !counter.top ) {
+            side_counter_ptr &top_ptr = counter_matrix_.at(m - 1).at(n);
+             assign_update(top_ptr,this_ptr) ;
+        }
+        
+        if ( !counter.left ) {
+            side_counter_ptr &left_ptr = counter_matrix_.at(m).at(n - 1);
+             assign_update(left_ptr,this_ptr) ;
+        }
+        
+        if ( !counter.right ) {
+            side_counter_ptr &right_ptr = counter_matrix_.at(m).at(n + 1);
+             assign_update(right_ptr,this_ptr) ;
+        }
+        
+        return this_ptr;
     }
 };
 
@@ -142,7 +167,6 @@ int main(int argc, char** argv) {
 
     matrix<int,5,5> test2(puddles_2_2) ;
     
-    //TEST Case fails bad algo !!!!!
      std::array<std::array<int, 5>, 5>  puddles_3_2 = {{
         {0,12,0,0,18},
         {21,0,15,28,0},
@@ -157,14 +181,12 @@ int main(int argc, char** argv) {
         assert_(3 == test1.count_encircled_chunks());
         assert_(2 == test2.count_encircled_chunks());
         assert_(2 == test3.count_encircled_chunks());
-        std::clog << "TEST1 passed found " << test1.count_encircled_chunks() << " encircled chunks aka puddles from the test" << std::endl;
-        std::clog << "TEST2 passed found " << test2.count_encircled_chunks() << " encircled chunks aka puddles from the test" << std::endl;
-        std::clog << "TEST3 passed found " << test3.count_encircled_chunks() << " encircled chunks aka puddles from the test" << std::endl;
-
     } catch (const std::exception &e) {
         std::clog << "One of the test cases failed broken ALGO " << e.what() << std::endl;
+        return 1;
     }
     
+    std::clog << "All test cases passed" << std::endl;
     return 0;
 }
 
