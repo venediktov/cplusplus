@@ -76,7 +76,7 @@ struct side_counter {
     side_counter(std::size_t t, std::size_t b, std::size_t l, std::size_t r) : top{t},bottom{b},left{l},right{r} {}
     
     bool is_sector_enclosed() {
-        return top == bottom && left == right ;
+        return top == bottom && left == right && std::min(std::min(top, bottom), std::min(left, right));
     }
 
     void operator= (std::size_t value) {
@@ -148,21 +148,12 @@ private:
         }
         *this_ptr += counter;
         
+        //Only connect buttom / right as we move left->right top->bottom, not to change top / left
         if ( !counter.bottom ) {
             side_counter_ptr &bottom_ptr = counter_matrix_.at(m + 1).at(n);
             assign_update(bottom_ptr,this_ptr) ;
         }
-        
-        if ( !counter.top ) {
-            side_counter_ptr &top_ptr = counter_matrix_.at(m - 1).at(n);
-             assign_update(top_ptr,this_ptr) ;
-        }
-        
-        if ( !counter.left ) {
-            side_counter_ptr &left_ptr = counter_matrix_.at(m).at(n - 1);
-             assign_update(left_ptr,this_ptr) ;
-        }
-        
+       
         if ( !counter.right ) {
             side_counter_ptr &right_ptr = counter_matrix_.at(m).at(n + 1);
              assign_update(right_ptr,this_ptr) ;
@@ -175,7 +166,7 @@ private:
 
 int main(int argc, char** argv) {
  
-    
+ 
     std::array<std::array<int, 5>, 5>  puddles_3_3 = {{
         {0,12,0,0,18},
         {21,0,15,28,0},
@@ -183,7 +174,6 @@ int main(int argc, char** argv) {
         {40,0,50,0,60},
         {0,70,0, 80,0}
     }};
-    
     matrix<int,5,5> test1(puddles_3_3) ;
     
     
@@ -194,7 +184,6 @@ int main(int argc, char** argv) {
         {40,1,50,0,60},
         {0,70,0, 80,0}
     }};
-
     matrix<int,5,5> test2(puddles_2_2) ;
     
      std::array<std::array<int, 5>, 5>  puddles_3_2 = {{
@@ -203,26 +192,53 @@ int main(int argc, char** argv) {
         {0,27,0, 0,30},
         {40,0,50,0,60},        
         {0, 0, 0, 80,0} //open  on cell in the bottom to exclude 
-    }};
-    
+    }}; 
     matrix<int,5,5> test3(puddles_3_2) ;
 
-    std::array<std::array<int, 5>, 6>  puddles_6x5_2 = { {
+    std::array<std::array<int, 5>, 6>  puddles_6x5_2 = {{
         { 0,1,0,0,1 },
         { 1,0,1,1,0 },
         { 0,1,0,0,1 },
         { 1,0,1,0,1 },
         { 1,0,0,1,1 },
         { 0,1,0,1,0 }  
-        } };
-
+    }};
     matrix<int, 6, 5> test4(puddles_6x5_2);
-    
+   
+    std::array<std::array<int, 8>, 8>  puddles_8x8_1 =
+    {{
+        {1,1,1,1,1,1,1,1},
+        {1,0,0,0,0,0,0,1},
+        {1,0,1,1,1,1,0,1},
+        {1,0,1,0,0,1,0,1},
+        {1,0,1,1,0,1,0,1},
+        {1,0,1,1,0,1,0,1},
+        {1,0,0,0,0,1,0,1},
+        {1,1,1,1,1,1,1,1}
+    }};
+    matrix<int, 8, 8> test5(puddles_8x8_1);
+
+    //open up m=7,n=6 from test5 should have 0 puddles
+    std::array<std::array<int, 8>, 8>  puddles_8x8_0 =
+    {{
+        { 1,1,1,1,1,1,1,1 },
+        { 1,0,0,0,0,0,0,1 },
+        { 1,0,1,1,1,1,0,1 },
+        { 1,0,1,0,0,1,0,1 },
+        { 1,0,1,1,0,1,0,1 },
+        { 1,0,1,1,0,1,0,1 },
+        { 1,0,0,0,0,1,0,1 },
+        { 1,1,1,1,1,1,0,1 }
+    }};
+    matrix<int, 8, 8> test6(puddles_8x8_0);
+
     try {
         assert_(3 == test1.count_encircled_chunks());
         assert_(2 == test2.count_encircled_chunks());
         assert_(2 == test3.count_encircled_chunks());
         assert_(2 == test4.count_encircled_chunks());
+        assert_(1 == test5.count_encircled_chunks());
+        assert_(0 == test6.count_encircled_chunks());
     } catch (const std::exception &e) {
         std::clog << "One of the test cases failed broken ALGO " << e.what() << std::endl;
         return 1;
