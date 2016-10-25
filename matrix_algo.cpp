@@ -95,16 +95,16 @@ struct side_counter {
     }
 };
 
-
-template<typename T, std::size_t N , std::size_t M>
+// M x N => ROW x COL
+template<typename T, std::size_t M , std::size_t N>
 struct matrix {
     template <typename TT, std::size_t ROW, std::size_t COL>
     using matrix_impl = std::array<std::array<TT, COL>, ROW>;
-    matrix_impl<T,N,M> impl_;
+    matrix_impl<T,M,N> impl_;
     using side_counter_ptr = std::shared_ptr<side_counter> ;
-    matrix_impl<side_counter_ptr,N,M> counter_matrix_ ;
+    matrix_impl<side_counter_ptr,M,N> counter_matrix_ ;
     
-    matrix(const matrix_impl<T,N,M> &impl)  : impl_(impl) {}
+    matrix(const matrix_impl<T,M,N> &impl)  : impl_(impl) {}
         
     std::size_t count_encircled_chunks()
     {
@@ -206,11 +206,23 @@ int main(int argc, char** argv) {
     }};
     
     matrix<int,5,5> test3(puddles_3_2) ;
+
+    std::array<std::array<int, 5>, 6>  puddles_6x5_2 = { {
+        { 0,1,0,0,1 },
+        { 1,0,1,1,0 },
+        { 0,1,0,0,1 },
+        { 1,0,1,0,1 },
+        { 1,0,0,1,1 },
+        { 0,1,0,1,0 }  
+        } };
+
+    matrix<int, 6, 5> test4(puddles_6x5_2);
     
     try {
         assert_(3 == test1.count_encircled_chunks());
         assert_(2 == test2.count_encircled_chunks());
         assert_(2 == test3.count_encircled_chunks());
+        assert_(2 == test4.count_encircled_chunks());
     } catch (const std::exception &e) {
         std::clog << "One of the test cases failed broken ALGO " << e.what() << std::endl;
         return 1;

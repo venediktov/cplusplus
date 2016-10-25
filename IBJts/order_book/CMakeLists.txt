@@ -1,4 +1,7 @@
 cmake_minimum_required(VERSION 2.8)
+cmake_policy(SET CMP0054 NEW)
+
+
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
   # using Clang
@@ -37,7 +40,7 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
     include_directories(${Boost_INCLUDE_DIRS} ../source/PosixClient/Shared ../source/PosixClient/src)
     set(TARGET_LINK_IBLIB_LFLAG -L../source/PosixClient/lib -Wl,-rpath,${CMAKE_CURRENT_SOURCE_DIR}/../source/PosixClient/lib -liblib)
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
-    include_directories(${Boost_INCLUDE_DIRS} ..\..\source\PosixClient\Shared ..\..\source\PosixClient\src)
+    include_directories(${Boost_INCLUDE_DIRS} ..\\..\\source\\PosixClient\\Shared ..\\..\\source\\PosixClient\\src)
 endif()
 
 
