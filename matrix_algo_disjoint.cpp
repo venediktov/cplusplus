@@ -222,7 +222,7 @@ int main(int argc, char** argv) {
     }};
     matrix<int, 8, 8> test6(puddles_8x8_0);
 
-    //from Alexander Topolev
+    //from Alexander Toropov
     std::array<std::array<int, 5>, 5>  puddles_5x5_1 =
     {{
         {2,2,2,2,2},
