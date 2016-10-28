@@ -37,6 +37,11 @@ add_executable(
 	matrix_algo.cpp
 	)
 
+add_executable(
+	matrix_algo_disjoint_test 
+	matrix_algo_disjoint.cpp
+	)
+
 target_link_libraries(
 	process_simple
 	${Boost_LIBRARIES}
