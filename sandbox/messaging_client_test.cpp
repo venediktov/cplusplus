@@ -48,15 +48,11 @@ int main(int argc, char**argv) {
 
 
   boost::asio::io_service io_service;
-/********
-  sender s(io_service, boost::asio::ip::address::from_string(remote_address));
+  sender<broadcast> s(io_service, port);
   std::string message("hello");
-  for ( int i=0; i<10 ; ++i ) {
-     LOG(info) << "sending="  << message;
-     s.send(message) ;
-  }
-  io_service.run();
-*********/ 
+  s.send_async(message) ;
+
+/*********
    boost::system::error_code err;
    boost::asio::ip::udp::socket socket(io_service);
 
@@ -74,6 +70,7 @@ int main(int argc, char**argv) {
     } else {
         LOG(error) << "Cannot create udp socket " << err;
     } 
+*******/
 }
 
 
