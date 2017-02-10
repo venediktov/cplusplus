@@ -13,10 +13,10 @@
 // incoming IP and if io_service is running on multiple threads it can create race condition
 //
 // Possible use cases: 
-// communicator(io_service).sender<broadcast>(port).distribute([] (...) {}).collect([] (...) {}) ;
-// communicator(io_service).sender<multicast>(port,group_address).distribute([] (...) {}).collect([] (...) {}) ;
-// communicator(io_service).receiver<broadcast>(port).process([] (...) {}) ;
-// communicator(io_service).receiver<multicast>(port,group_address).process([] (...) {}) ;
+// communicator(io_service).sender<broadcast>(port).distribute([] (...) {}).collect(85ms, [] (...) {}) ;
+// communicator(io_service).sender<multicast>(port,group_address).distribute([] (...) {}).collect(75ms, [] (...) {}) ;
+// communicator(io_service).receiver<broadcast>(port).process([] (...) {}) ; //blocks in io_service.run()
+// communicator(io_service).receiver<multicast>(port,group_address).process([] (...) {}) ; //blocks in io_service.run()
 //
 
 #include <iostream>
