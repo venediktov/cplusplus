@@ -51,20 +51,25 @@ int main(int argc, char**argv) {
   }
 
 
+LOG(info) << "Started..." ;
+communicator<broadcast>().inbound(port).process([](auto from_endpoint, std::string data) { //data is std::moved
+    LOG(info) << "Received(Broadcast:" << *from_endpoint  << "):" << data;
+}).run();
+
+/*******************
   boost::asio::io_service io_service;
 
   receiver<broadcast>::data_type data;
     receiver<broadcast> comm(io_service, port);
-       comm.receive_async(data, [](std::string serialized_data) {
+       comm.receive_async(data, [](auto from_endpoint, std::string serialized_data) {
           std::stringstream ss (serialized_data);
           boost::archive::binary_iarchive iarch(ss);
           std::string data;
           iarch >> data;
-          LOG(info) << "Received(Broadcast):" << data;
+          LOG(info) << "Received(Broadcast:" << *from_endpoint  << "):" << data;
        }) ;
 
 
-/*******************
   auto data = std::make_shared<receiver<broadcast>::data_type>();
   if ( type == "broadcast" ) {
     receiver<broadcast> comm(io_service, port);
@@ -98,8 +103,8 @@ int main(int argc, char**argv) {
   //template<typename Serializible>
   //communicator.gather( std::vector<Serializible> &data) ;
 
-  LOG(info) << "Started..." ;
-  io_service.run();
+  //LOG(info) << "Started..." ;
+  //io_service.run();
   
 }
 

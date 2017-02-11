@@ -18,7 +18,7 @@ extern void init_framework_logging(const std::string &) ;
 
 namespace po = boost::program_options;
 using namespace vanilla::messaging;
-
+using namespace std::literals;
 int main(int argc, char**argv) {
 
   init_framework_logging("/tmp/openrtb_messaging_test_log");
@@ -47,12 +47,19 @@ int main(int argc, char**argv) {
   }
 
 
-  boost::asio::io_service io_service;
-  sender<broadcast> s(io_service, port);
-  std::string message("hello");
-  s.send_async(message) ;
+communicator<broadcast>().outbound(port).distribute(std::string("hello"))
+.collect(2000ms, [](const std::string serialized_data) {
+    LOG(info) << "Received back:" << serialized_data ;
+});
+
 
 /*********
+
+//  boost::asio::io_service io_service;
+//  sender<broadcast> s(io_service, port);
+//  std::string message("hello");
+//  s.send_async(message) ;
+
    boost::system::error_code err;
    boost::asio::ip::udp::socket socket(io_service);
 

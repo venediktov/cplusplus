@@ -13,14 +13,17 @@
 // incoming IP and if io_service is running on multiple threads it can create race condition
 //
 // Possible use cases: 
-// communicator(io_service).sender<broadcast>(port).distribute([] (...) {}).collect(85ms, [] (...) {}) ;
-// communicator(io_service).sender<multicast>(port,group_address).distribute([] (...) {}).collect(75ms, [] (...) {}) ;
-// communicator(io_service).receiver<broadcast>(port).process([] (...) {}) ; //blocks in io_service.run()
-// communicator(io_service).receiver<multicast>(port,group_address).process([] (...) {}) ; //blocks in io_service.run()
+// communicator().sender<broadcast>(port).distribute([] (...) {}).collect(85ms, [] (...) {}) ;
+// communicator().sender<multicast>(port,group_address).distribute([] (...) {}).collect(75ms, [] (...) {}) ;
+// communicator().receiver<broadcast>(port).process([] (...) {}) ; //blocks in io_service.run()
+// communicator().receiver<multicast>(port,group_address).process([] (...) {}) ; //blocks in io_service.run()
 //
+
+// communicator<broadcast>().distribute([] (...) {}, port).collect(85ms, [] (...) {}, port) ;
 
 #include <iostream>
 #include <string>
+#include <thread>
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
 #include <boost/date_time/posix_time/posix_time_types.hpp>
@@ -82,7 +85,7 @@ public:
       receive_socket_.async_receive_from(
           boost::asio::buffer(data.data(), data.size()), *from_endpoint,
               [this,&data,&handler,from_endpoint](const boost::system::error_code& error, size_t bytes_recvd) {
-                handler(std::string(data.data(),bytes_recvd));
+                handler(from_endpoint, std::move(std::string(data.data(),bytes_recvd))); 
                 handle_receive_from(error, std::forward<Handler>(handler), data, bytes_recvd);
       });
   }
@@ -101,7 +104,7 @@ private:
       receive_socket_.async_receive_from(
           boost::asio::buffer(data.data(), data.size()), *from_endpoint,
           [this,&data,&handler,from_endpoint](const boost::system::error_code& error, size_t bytes_recvd) {
-          handler(std::string(data.data(),bytes_recvd));
+          handler(from_endpoint, std::move(std::string(data.data(),bytes_recvd)));
           handle_receive_from(error, std::forward<Handler>(handler), data, bytes_recvd);
       });
 
@@ -111,10 +114,12 @@ private:
   boost::asio::ip::udp::socket receive_socket_;
 };
 
-template<typename ConnectionPolicy>
+template<typename ConnectionPolicy, unsigned int MAX_DATA_SIZE = 4 * 1024>
 class sender : ConnectionPolicy
 {
 public:
+  using data_type = std::array<char, MAX_DATA_SIZE> ;
+
   template<typename ...IPAddress>
   sender(boost::asio::io_service& io_service, const unsigned short port, IPAddress && ...addresses) :
     send_socket_{io_service}, timer_{io_service},
@@ -136,12 +141,17 @@ public:
         });
   }
 
-  template<typename Duration, typename Handler>
-  void collect(Duration && howlong, Handler && handler) {
-      //TODO: use std::future with timeout wrap around this code
-      receiver<ConnectionPolicy> collector;
-      collector.receive_async<Handler>(data, std::forward<Handler>(handler));
+  template<typename Handler>
+  void receive_async( data_type & data, Handler && handler ) {
+      auto from_endpoint = std::make_shared<boost::asio::ip::udp::endpoint>() ;
+      send_socket_.async_receive_from(
+          boost::asio::buffer(data.data(), data.size()), *from_endpoint,
+              [this,&data,&handler,from_endpoint](const boost::system::error_code& error, size_t bytes_recvd) {
+                handler(std::move(std::string(data.data(),bytes_recvd))); 
+                handle_receive_from(error, std::forward<Handler>(handler), data, bytes_recvd);
+      });
   }
+
 
 private:
   void handle_send_to(const boost::system::error_code& error, std::shared_ptr<std::string> data) {
@@ -163,6 +173,24 @@ private:
     }
   }
 
+  template<typename Handler>
+  void handle_receive_from(const boost::system::error_code& error, 
+                           Handler && handler, 
+                           data_type &data, 
+                           size_t bytes_recvd) 
+  {
+    if (!error) {
+      auto from_endpoint = std::make_shared<boost::asio::ip::udp::endpoint>() ;
+      send_socket_.async_receive_from(
+          boost::asio::buffer(data.data(), data.size()), *from_endpoint,
+          [this,&data,&handler,from_endpoint](const boost::system::error_code& error, size_t bytes_recvd) {
+          handler(std::move(std::string(data.data(),bytes_recvd)));
+          handle_receive_from(error, std::forward<Handler>(handler), data, bytes_recvd);
+      });
+
+    }
+  }
+
   boost::asio::ip::udp::socket send_socket_;
   boost::asio::deadline_timer timer_;
   boost::asio::ip::udp::endpoint endpoint_;
@@ -171,21 +199,72 @@ private:
 
 
 
+template<typename ConnectionPolicy>
 class communicator {
+    using consumer_type   = std::shared_ptr<receiver<ConnectionPolicy>>;
+    using distributor_type = std::shared_ptr<sender<ConnectionPolicy>>;
 public:
-    communicator() : io_service_{}
+    using self_type = communicator<ConnectionPolicy> ;
+    communicator() : io_service_{}, timer_{io_service_}
     {}
     communicator(communicator &&) = delete;
     communicator(communicator &) = delete;
     communicator &operator=(communicator &) = delete;
     communicator && operator=(communicator &&) = delete;
 
-    template<typename T, typename ...IPAddress>
-    auto sender(const unsigned short port, IPAddress && ...addresses) {
-        return sender<T>(io_service_, port, std::forward<IPAddress>(addresses)...);
+    template<typename ...IPAddress>
+    self_type & outbound(const unsigned short port, IPAddress && ...addresses) {
+        distributor_ = std::make_shared<sender<ConnectionPolicy>>(io_service_, port, std::forward<IPAddress>(addresses)...);
+        return *this;
     }
+
+    template<typename ...IPAddress>
+    self_type &  inbound(const unsigned short port, IPAddress && ...addresses) {
+        consumer_ = std::make_shared<receiver<ConnectionPolicy>>(io_service_, port, std::forward<IPAddress>(addresses)...);
+        return *this;
+    }
+
+    
+    template<typename Serializable>
+    self_type & distribute(Serializable && data) {
+        if(distributor_) {
+            distributor_->send_async(std::forward<Serializable>(data));
+        }
+        return *this;
+    }
+
+    template<typename Handler>
+    self_type & process(Handler && handler) {
+       if( consumer_) {
+           consumer_->receive_async(data_, std::forward<Handler>(handler));
+       }
+       return *this;
+    }
+
+    template<typename Duration, typename Handler>
+    void collect(Duration && timeout, Handler && handler) {
+       if( !distributor_) {
+           return;
+       }
+       distributor_->receive_async(data_, std::forward<Handler>(handler));
+       timer_.expires_from_now(boost::posix_time::milliseconds(timeout.count()));
+       timer_.async_wait( [this](const boost::system::error_code& error) {
+           ; //distributor_.reset() ;
+       });
+       //TODO: need optimized return before timer if all data is collected from all responders
+       std::this_thread::sleep_for(std::forward<Duration>(timeout));
+    }
+
+    void run() {
+        io_service_.run();
+    }
+    
 private:
-    boost::asio::io_service io_service_;
+    boost::asio::io_service     io_service_;
+    boost::asio::deadline_timer timer_;
+    typename receiver<ConnectionPolicy>::data_type data_;
+    distributor_type distributor_;
+    consumer_type   consumer_;
 };
 
 
