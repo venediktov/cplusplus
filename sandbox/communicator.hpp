@@ -29,9 +29,10 @@
 
 namespace vanilla { namespace messaging {
 
+    
 struct multicast {
     template<typename SocketType, typename IPAddress>
-    void receiver_set_option(SocketType && socket, const ushort port, IPAddress && listen_address, IPAddress && multicast_address) {
+    void receiver_set_option(SocketType && socket, const unsigned short port, IPAddress && listen_address, IPAddress && multicast_address) {
         boost::asio::ip::udp::endpoint listen_endpoint{listen_address, port};
         socket.open(listen_endpoint.protocol());
         socket.set_option(boost::asio::ip::udp::socket::reuse_address(true));
@@ -39,7 +40,7 @@ struct multicast {
         socket.set_option(boost::asio::ip::multicast::join_group(std::forward<IPAddress>(multicast_address)));
     }
     template<typename SocketType, typename IPAddress>
-    auto sender_endpoint(SocketType && socket, const ushort port, IPAddress &&  address) {
+    auto sender_endpoint(SocketType && socket, const unsigned short port, IPAddress &&  address) {
         boost::asio::ip::udp::endpoint send_endpoint{std::forward<IPAddress>(address), port};
         socket.open(send_endpoint.protocol());
         return send_endpoint;
@@ -48,14 +49,14 @@ struct multicast {
 
 struct broadcast {
     template<typename SocketType>
-    void receiver_set_option(SocketType && socket, const ushort port) {
+    void receiver_set_option(SocketType && socket, const unsigned short port) {
         boost::asio::ip::udp::endpoint listen_endpoint{boost::asio::ip::udp::v4(), port};
         socket.open(listen_endpoint.protocol());
         socket.bind(listen_endpoint);
         socket.set_option(boost::asio::ip::udp::socket::reuse_address(true));
     }
     template<typename SocketType>
-    auto sender_endpoint(SocketType && socket, const ushort port) {
+    auto sender_endpoint(SocketType && socket, const unsigned short port) {
         socket.open(boost::asio::ip::udp::v4());
         socket.set_option(boost::asio::socket_base::broadcast(true));
         return boost::asio::ip::udp::endpoint(boost::asio::ip::address_v4::broadcast(), port);
@@ -70,7 +71,7 @@ public:
   using data_type = std::array<char, MAX_DATA_SIZE> ;
 
   template<typename ...IPAddress>
-  receiver(boost::asio::io_service& io_service, const ushort port, IPAddress && ...addresses) : 
+  receiver(boost::asio::io_service& io_service, const unsigned short port, IPAddress && ...addresses) :
     receive_socket_{io_service} {
     ConnectionPolicy::receiver_set_option(receive_socket_, port , std::forward<IPAddress>(addresses)...);
   }
@@ -115,7 +116,7 @@ class sender : ConnectionPolicy
 {
 public:
   template<typename ...IPAddress>
-  sender(boost::asio::io_service& io_service, const short port, IPAddress && ...addresses) :
+  sender(boost::asio::io_service& io_service, const unsigned short port, IPAddress && ...addresses) :
     send_socket_{io_service}, timer_{io_service},
     endpoint_{ConnectionPolicy::sender_endpoint(send_socket_, port , std::forward<IPAddress>(addresses)...)}
   {}
@@ -133,6 +134,13 @@ public:
         [this,data_p](const boost::system::error_code& error, std::size_t bytes_transferred) {
            handle_send_to(error, data_p);
         });
+  }
+
+  template<typename Duration, typename Handler>
+  void collect(Duration && howlong, Handler && handler) {
+      //TODO: use std::future with timeout wrap around this code
+      receiver<ConnectionPolicy> collector;
+      collector.receive_async<Handler>(data, std::forward<Handler>(handler));
   }
 
 private:
@@ -161,6 +169,24 @@ private:
 };
 
 
+
+
+class communicator {
+public:
+    communicator() : io_service_{}
+    {}
+    communicator(communicator &&) = delete;
+    communicator(communicator &) = delete;
+    communicator &operator=(communicator &) = delete;
+    communicator && operator=(communicator &&) = delete;
+
+    template<typename T, typename ...IPAddress>
+    auto sender(const unsigned short port, IPAddress && ...addresses) {
+        return sender<T>(io_service_, port, std::forward<IPAddress>(addresses)...);
+    }
+private:
+    boost::asio::io_service io_service_;
+};
+
+
 }}
-
-
