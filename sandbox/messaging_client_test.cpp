@@ -6,11 +6,15 @@
 #include <random>
 #include <memory>
 #include <iostream>
+#include <iterator>
 #include <boost/program_options.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/asio.hpp>
 #include <boost/system/error_code.hpp>
+#include "core/openrtb.hpp"
+#include "messaging/serialization.hpp"
 #include "messaging/communicator.hpp"
+#include "DSL/generic_dsl.hpp"
 
 #define LOG(x) BOOST_LOG_TRIVIAL(x) //TODO: move to core.hpp
 
@@ -47,37 +51,19 @@ int main(int argc, char**argv) {
   }
 
 
+std::vector<std::string> responses;
 communicator<broadcast>().outbound(port).distribute(std::string("hello"))
-.collect(2000ms, [](const std::string serialized_data) {
-    LOG(info) << "Received back:" << serialized_data ;
+.collect(10ms, [&responses](const std::string serialized_data) {
+    std::stringstream ss (serialized_data);
+    boost::archive::binary_iarchive iarch(ss);
+    openrtb::BidResponse bid;
+    iarch >> bid;
+    auto resp =  to_string(DSL::GenericDSL().create_response(bid)) ;
+    LOG(info) << "Received back:" << resp;
+    responses.emplace_back(resp.data(),resp.size());
 });
 
+std::copy ( std::begin(responses), std::end(responses), std::ostream_iterator<std::string>(std::cout, "\n"));
 
-/*********
-
-//  boost::asio::io_service io_service;
-//  sender<broadcast> s(io_service, port);
-//  std::string message("hello");
-//  s.send_async(message) ;
-
-   boost::system::error_code err;
-   boost::asio::ip::udp::socket socket(io_service);
-
-    socket.open(boost::asio::ip::udp::v4(), err);
-    if (!err)
-    {
-        socket.set_option(boost::asio::ip::udp::socket::reuse_address(true));
-        socket.set_option(boost::asio::socket_base::broadcast(true));
-
-        boost::asio::ip::udp::endpoint senderEndpoint(boost::asio::ip::address_v4::broadcast(), port);
-
-        std::string message("hello");
-        socket.send_to(boost::asio::buffer(message.data(), message.size()), senderEndpoint);
-        socket.close(err);
-    } else {
-        LOG(error) << "Cannot create udp socket " << err;
-    } 
-*******/
 }
-
 
