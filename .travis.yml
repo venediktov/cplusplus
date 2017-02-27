@@ -46,7 +46,7 @@ install:
   - if [ -f "$BOOST_ROOT/b2" ]; then cd "$BOOST_ROOT"; ./b2 toolset="$BOOST_TOOLSET" threading=multi --prefix="$BOOST_ROOT" -d0 install; fi 
   # install cmake
   - if [ ! -f "cmake-${CMAKE_VERSION}.tar.gz" ]; then wget "http://www.cmake.org/files/v3.2/cmake-${CMAKE_VERSION}.tar.gz"; fi
-  - openssl sha1 "cmake-${CMAKE_VERSION}.tar.gz"; fi
+  - openssl sha1 "cmake-${CMAKE_VERSION}.tar.gz";
   - if [ ! -d "cmake-${CMAKE_VERSION}" ]; then tar xf "cmake-${CMAKE_VERSION}.tar.gz"; fi
   - if [ ! -f "cmake-${CMAKE_VERSION}/bootstrap" ]; then cd "cmake-${CMAKE_VERSION}"; ./bootstrap --prefix=$HOME; make; make install; fi
   - export PATH="$HOME/bin:${PATH}"
