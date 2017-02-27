@@ -60,11 +60,13 @@ install:
 
 
 before-script:
+ - cd $TRAVIS_BUILD_DIR
  - rm -rf CMakeFiles/ cmake_install.cmake CMakeCache.txt
  - cd Debug; rm -rf CMakeFiles/ cmake_install.cmake CMakeCache.txt; cd ..
  - cd Release; rm -rf CMakeFiles/ cmake_install.cmake CMakeCache.txt; cd ..
 
 script:
-- mkdir Debug && cd Debug && cmake -DBOOST_ROOT=$BOOST_ROOT -DCMAKE_INSTALL_PREFIX:PATH=~ -DCMAKE_BUILD_TYPE=Debug ..  && make CXX=$COMPILER_CXX -j3 VERBOSE=1 && cd ..
-- mkdir Release && cd Release && cmake  -DBOOST_ROOT=$BOOST_ROOT -DCMAKE_INSTALL_PREFIX:PATH=~  -DCMAKE_BUILD_TYPE=Release .. && make CXX=$COMPILER_CXX -j3 VERBOSE=1 && cd ..
+- cd $TRAVIS_BUILD_DIR
+- mkdir -p Debug && cd Debug && cmake -DBOOST_ROOT=$BOOST_ROOT -DCMAKE_BUILD_TYPE=Debug ..  && make CXX=$COMPILER_CXX -j3 VERBOSE=1 && cd ..
+- mkdir -p Release && cd Release && cmake  -DBOOST_ROOT=$BOOST_ROOT  -DCMAKE_BUILD_TYPE=Release .. && make CXX=$COMPILER_CXX -j3 VERBOSE=1 && cd ..
 
