@@ -1394,7 +1394,7 @@ namespace eosio {
 
 
 namespace eosio { namespace raw { 
-  
+
   template<typename Stream, typename Arg0, typename... Args>  void pack( Stream& s, Arg0&& a0, Args&&... args );
   // template<typename Stream, typename T>  void pack( Stream& s, T&& v );
   // template<typename Stream, typename T>  void unpack( Stream& s, T& v );
@@ -1408,7 +1408,7 @@ namespace eosio { namespace raw {
   // template<typename Stream>  void unpack( Stream& s, public_key& value );
   // template<typename Stream>  void pack( Stream& s, const string& v );
   // template<typename Stream>  void unpack( Stream& s, string& v);
-  template<typename Stream>  void pack( Stream& s, const fixed_string32& v );
+  template<typename Stream>  void pack( Stream& s, const fixed_string32& v);
   // template<typename Stream>  void unpack( Stream& s, fixed_string32& v);
   // template<typename Stream>  void pack( Stream& s, const fixed_string16& v );
   // template<typename Stream>  void unpack( Stream& s, fixed_string16& v);
@@ -1677,7 +1677,10 @@ namespace eosio {
    *  @param s stream to write
    *  @param v value to be serialized
    */
-   template<typename Stream>  void pack( Stream& s, const bool& v ) { eosio::raw::pack( s, uint8_t(v) );             }
+   template<typename Stream>  void pack( Stream& s, const bool& v ) 
+   { 
+     eosio::raw::pack( s, uint8_t(v) );
+   }
 
   /**
    *  Deserialize a bool from a stream
@@ -1768,7 +1771,8 @@ int main() {
   fixed_string32 tmp;
   tmp.len = 8;
   memcpy(tmp.str , "Vladimir", tmp.len);
-  bytes b = eosio::raw::pack(tmp);
+  const fixed_string32 tmp2  = tmp;
+  bytes b = eosio::raw::pack(static_cast< decltype(tmp2) const&>(tmp2));
   return b.len;
-  
+ 
 }
