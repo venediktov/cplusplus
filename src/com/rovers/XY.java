@@ -7,23 +7,4 @@ public class XY {
         this.x = x ;
         this.y = y;
     }
-    Direction direction(final XY other) {
-        if ( x == other.x ) {
-            if ( y < other.y) {
-                return Direction.N;
-            } else {
-                return Direction.S;
-            }
-        }
-
-        if( y == other.y) {
-            if(x < other.x ) {
-                return Direction.E;
-            } else {
-                return Direction.W;
-            }
-        }
-
-        throw new RuntimeException("Direction is mesed up");
-    }
 }

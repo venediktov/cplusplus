@@ -2,7 +2,7 @@ package com.rovers;
 
 
 public enum Moves {
-    L{ //Left
+    L { //Left
         @Override
         public void move(final Rover rover) {
             switch(rover.direction()) {
@@ -21,7 +21,7 @@ public enum Moves {
             }
         }
     },
-    R{ //Right
+    R { //Right
         @Override
         public void move(final Rover rover) {
             switch(rover.direction()) {
@@ -40,25 +40,23 @@ public enum Moves {
             }
         }
     },
-    M{ //Forward
+    M { //Forward
         @Override
         public void move(final Rover rover) {
-            switch(rover.direction()) {
+            Direction direction = rover.direction();
+            XY face = direction.face(rover.impl);
+            switch(direction) {
                 case N:
-                    rover.impl.y = Math.max(Main.Ymin, Math.min(Main.Ymax,rover.face.y)); //extra guard Math.max
-                    rover.face.y += 1;
+                    rover.impl.y = Math.max(Main.Ymin, Math.min(Main.Ymax,face.y)); //extra guard Math.max
                     break;
                 case S:
-                    rover.impl.y = Math.min(Main.Ymax, Math.max(Main.Ymin,rover.face.y)); //extra guard Math.min
-                    rover.face.y -=1;
+                    rover.impl.y = Math.min(Main.Ymax, Math.max(Main.Ymin,face.y)); //extra guard Math.min
                     break;
                 case E:
-                    rover.impl.x = Math.max(Main.Xmin, Math.min(Main.Xmax,rover.face.x)); //extra guard Math.max
-                    rover.face.x += 1;
+                    rover.impl.x = Math.max(Main.Xmin, Math.min(Main.Xmax,face.x)); //extra guard Math.max
                     break;
                 case W:
-                    rover.impl.x = Math.min(Main.Xmax, Math.max(Main.Xmin,rover.face.x)); //extra guard Math.min
-                    rover.face.x -= 1;
+                    rover.impl.x = Math.min(Main.Xmax, Math.max(Main.Xmin,face.x)); //extra guard Math.min
                     break;
             }
         }

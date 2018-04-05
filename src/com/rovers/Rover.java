@@ -2,16 +2,17 @@ package com.rovers;
 
 public class Rover {
     XY impl;
-    XY face;
+    Direction direction;
+
     public Rover(final XY other, final Direction d) {
         impl = other;
-        face = d.face(other);
+        direction = d ;
     }
     Direction direction() {
-        return impl.direction(face);
+        return direction;
     }
 
     void direction(final Direction d) {
-        this.face = d.face(impl);
+        direction = d;
     }
 }
