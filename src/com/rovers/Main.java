@@ -20,8 +20,7 @@ public class Main {
             in.nextLine();
         }
         while (in.hasNextLine()) {
-            String tmp = in.nextLine();
-            String[] roverSpec = tmp.split("\\s");
+            String[] roverSpec = in.nextLine().split("\\s");
             List<Character> moves = in.next().chars().mapToObj(o->(char)o).collect(Collectors.toList());
             if(in.hasNextLine()) {
                 in.nextLine(); //skip terminating newline was not consumed by simple next()
@@ -33,7 +32,7 @@ public class Main {
             {
                 Moves.valueOf(m.toString()).move(rover);
             });
-            System.out.println(rover.impl.x + " " + rover.impl.y + " " + rover.direction());
+            System.out.println(rover.xy().x + " " + rover.xy().y + " " + rover.direction());
         }
     }
 }
