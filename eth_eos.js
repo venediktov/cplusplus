@@ -8,7 +8,7 @@ const identity = EthCrypto.createIdentity();
 public_address_hex_str = identity.address; //do not remove 0x
 private_key_hex_str = identity.privateKey // do not remove 0x
 public_key_hex_str = identity.publicKey;
-// private_key_hex_str = '95040f2b28c185eb630d61665369b3a70e2c2d2819d84aa58998e4a4de9e5899'
+// private_key_hex_str = '0x95040f2b28c185eb630d61665369b3a70e2c2d2819d84aa58998e4a4de9e5899'
 console.log(identity);
 console.log("######################################  ETH");
 const message = 'EOS can handle ETH signatures';
@@ -64,11 +64,23 @@ console.log(eos_signature);
 console.log("eos_signature for hash message:");
 console.log(eos_signed_hash);
 
-console.log("PUBLIC KEY RECOVERY:");
+console.log("PUBLIC KEY RECOVERY ( EOS ) :");
 const ms = Buffer.from( messageHash, 'hex');
 const e = ecc.recover(eos_signature, ms);
 console.log(e);
 
-console.log("Exeute following chain command:")
+//Public key In hex
+console.log(keyUtils.checkDecode(e.slice(3)).toString('hex')); 
+
+console.log("Execute following chain command:")
 cleosCmd = "cleos push action sense.snap keycheck '[" + messageHash.slice(2) + " , " +  eos_signed_hash + "]' -p sense.snap";
 console.log(cleosCmd);
+
+console.log("EOS SIG IN HEX:")
+eos_signed_hash_hex = keyUtils.checkDecode(eos_signed_hash.slice(7), 'K1').toString('hex');
+console.log(eos_signed_hash_hex.slice(0,2) + " + " + eos_signed_hash_hex.slice(2));
+
+console.log("ETH SIG IN HEX:")
+eth_signed_hash_hex = signature.slice(2);
+console.log(eth_signed_hash_hex.slice(0,-2) + " + " + eth_signed_hash_hex.slice(-2));
+
