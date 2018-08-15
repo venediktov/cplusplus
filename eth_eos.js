@@ -8,7 +8,8 @@ const identity = EthCrypto.createIdentity();
 public_address_hex_str = identity.address; //do not remove 0x
 private_key_hex_str = identity.privateKey // do not remove 0x
 public_key_hex_str = identity.publicKey;
-// private_key_hex_str = '0x95040f2b28c185eb630d61665369b3a70e2c2d2819d84aa58998e4a4de9e5899'
+//private_key_hex_str = '0xabb5fccd075a18a480636665267acbdeaa5a81e394258fa95d77eba8aeeb20fa' //bad
+// private_key_hex_str = '0x95040f2b28c185eb630d61665369b3a70e2c2d2819d84aa58998e4a4de9e5899' //good
 console.log(identity);
 console.log("######################################  ETH");
 const message = 'EOS can handle ETH signatures';
